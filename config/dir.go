@@ -5,15 +5,16 @@ import (
 	"os"
 )
 
-// Directory consists of its name and nested templates, which could either be
+// Dir consists of its name and nested templates, which could either be
 // Files and/or Directories
-type Directory struct {
-	Name      string
-	Templates []Template
+type Dir struct {
+	Name  string
+	Files []File
+	Dirs  []Dir
 }
 
 // Build will create files and nested directories.
-func (d Directory) Build(c *Config) {
+func (d *Dir) Build(c *Config) {
 	if err := os.MkdirAll(d.Name, DefaultPermissions); err != nil {
 		log.Println(err)
 		return
@@ -24,7 +25,11 @@ func (d Directory) Build(c *Config) {
 		return
 	}
 
-	for _, dir := range d.Templates {
+	for _, file := range d.Files {
+		file.Build(c)
+	}
+
+	for _, dir := range d.Dirs {
 		dir.Build(c)
 	}
 

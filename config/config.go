@@ -4,36 +4,32 @@ import (
 	"log"
 	"os"
 
-	"gopkg.in/yaml.v2"
+	"gopkg.in/yaml.v3"
 )
 
 // DefaultPermissions is the default permissions for generated templates.
 const DefaultPermissions = 0o755
 
-// Template describes an object that can be build from the yaml file.
-type Template interface {
-	// Build will construct the template. It takes in a pointer to a Config
-	// struct for context. For instance, File uses this to read in the variables
-	// to Go's text/template package.
-	Build(c *Config)
+type Template struct {
+	Files []File
+	Dirs  []Dir
 }
 
 // Config describes the structure of the configuration template.
 type Config struct {
 	Name      string
-	Templates []Template
+	Template  Template
 	Variables map[string]interface{}
 }
 
 // Build will build all of the templates defined in Templates.
 func (c *Config) Build() {
-	for _, temp := range c.Templates {
-		temp.Build(c)
-	}
+	c.Template.Build(c)
 }
 
 // NewConfig will generate a new Config from the given config file's path.
 func NewConfig(fpath string) (conf *Config, err error) {
+	conf = new(Config)
 	data, err := os.ReadFile(fpath)
 	if err != nil {
 		return
@@ -44,5 +40,16 @@ func NewConfig(fpath string) (conf *Config, err error) {
 	}
 
 	return
+
+}
+
+func (t *Template) Build(c *Config) {
+	for _, f := range t.Files {
+		f.Build(c)
+	}
+
+	for _, d := range t.Dirs {
+		d.Build(c)
+	}
 
 }
