@@ -1,87 +1,22 @@
+/*
+Copyright © 2021 NAME HERE <EMAIL ADDRESS>
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
 package main
 
-import (
-	"fmt"
-	"log"
-	"os"
-
-	"gopkg.in/yaml.v2"
-)
-
-const DefaultPermissions = 0o755
-
-type File struct {
-	Name    string
-	Content string `yaml:",flow"`
-}
-
-type Directory struct {
-	Name        string
-	Files       []File
-	Directories []Directory
-}
-
-type Template struct {
-	Files       []File
-	Directories []Directory
-}
-
-type TemplateConfig struct {
-	Name     string
-	Template Template
-}
-
-func (t Template) Build() {
-	for _, file := range t.Files {
-		file.Build()
-	}
-
-	for _, dir := range t.Directories {
-		dir.Build()
-	}
-}
-
-func (d Directory) Build() {
-	if err := os.MkdirAll(d.Name, DefaultPermissions); err != nil {
-		log.Println(err)
-		return
-	}
-
-	if err := os.Chdir(d.Name); err != nil {
-		log.Println(err)
-		return
-	}
-
-	for _, file := range d.Files {
-		file.Build()
-	}
-
-	for _, dir := range d.Directories {
-		dir.Build()
-	}
-
-	os.Chdir("..")
-}
-
-func (f File) Build() {
-	if err := os.WriteFile(f.Name, []byte(f.Content), DefaultPermissions); err != nil {
-		log.Println(err)
-	}
-}
+import "tmpl/cmd"
 
 func main() {
-
-	data, err := os.ReadFile("test.yaml")
-	if err != nil {
-		log.Fatalln(err)
-	}
-
-	var tmpl TemplateConfig
-	if err := yaml.Unmarshal(data, &tmpl); err != nil {
-		log.Fatalln(err)
-	}
-
-	tmpl.Template.Build()
-
-	fmt.Println(tmpl)
+	cmd.Execute()
 }
