@@ -39,7 +39,7 @@ func NewConfig(fpath string) (conf *Config, err error) {
 		log.Fatalln(err)
 	}
 
-	return
+	return conf, nil
 
 }
 
