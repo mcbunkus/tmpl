@@ -8,9 +8,8 @@ import (
 // Dir consists of its name and nested templates, which could either be
 // Files and/or Directories
 type Dir struct {
-	Name  string
-	Files []File
-	Dirs  []Dir
+	Name string
+	Template
 }
 
 // Build will create files and nested directories.
