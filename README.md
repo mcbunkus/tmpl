@@ -4,7 +4,7 @@ This is an overengineered tool for myself to generate projects.
 
 Here's the blurb from the help message:
 
-``` sh
+```
 Generate a project from a given yaml template. For example:
 
         tmpl template.yaml
