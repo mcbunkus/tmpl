@@ -1,7 +1,7 @@
 package lib
 
 import (
-	"log"
+	"fmt"
 	"os"
 	"text/template"
 )
@@ -16,23 +16,23 @@ type File struct {
 
 // Build will create the file and write its contents. Templated variables will
 // also be filled in, <no value> will be written in invalid variables.
-func (f *File) Build(c *TemplateConfig) {
+func (f *File) Build(c *Spec) error {
 	textTmpl, err := template.New(f.Name).Parse(f.Content)
 	if err != nil {
-		log.Printf("Failed to fill in template for %s:\n\n\t%s\n\n", f.Name, err.Error())
-		return
+		return fmt.Errorf("%s template failed: %s", f.Name, err.Error())
 	}
 
 	file, err := os.Create(f.Name)
 	if err != nil {
-		log.Printf("Failed to create %s:\n\n\t%s\n\n", f.Name, err.Error())
-		return
+		return fmt.Errorf("failed to create %s: %s", f.Name, err.Error())
 	}
 
 	defer file.Close()
 
 	if err := textTmpl.Execute(file, c.Variables); err != nil {
-		log.Printf("Failed executing template for %s:\n\n\t%s\n\n", f.Name, err.Error())
+		fmt.Errorf("failed executing %s template: %s", f.Name, err.Error())
 	}
+
+	return nil
 
 }

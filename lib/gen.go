@@ -1,8 +1,6 @@
 package lib
 
-const BlankConfig = `
-name: <your-name-here>
-
+const BlankConfig = `\
 # You can specify template variables which can written to file contents.
 # It uses Go style template syntax.
 variables:

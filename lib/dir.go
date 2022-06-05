@@ -1,36 +1,43 @@
 package lib
 
 import (
-	"log"
 	"os"
 )
 
 // Dir consists of its name and nested templates, which could either be
 // Files and/or Directories
 type Dir struct {
-	Name string
-	Template
+	Name string `yaml:"name"`
+
+	// the yaml parser doesn't like embedded structs :(
+	Files []File `yaml:"files"`
+	Dirs  []Dir  `yaml:"dirs"`
 }
 
 // Build will create files and nested directories.
-func (d *Dir) Build(c *TemplateConfig) {
+func (d *Dir) Build(c *Spec) error {
+
+	var err error = nil
 	if err := os.MkdirAll(d.Name, DefaultPermissions); err != nil {
-		log.Println(err)
-		return
+		return err
 	}
 
 	if err := os.Chdir(d.Name); err != nil {
-		log.Println(err)
-		return
+		return err
 	}
 
 	for _, file := range d.Files {
-		file.Build(c)
+		if ferr := file.Build(c); ferr != nil {
+			err = wrapError(err, ferr)
+		}
 	}
 
 	for _, dir := range d.Dirs {
-		dir.Build(c)
+		if derr := dir.Build(c); derr != nil {
+			err = wrapError(err, derr)
+		}
 	}
 
-	os.Chdir("..")
+	err = wrapError(err, os.Chdir(".."))
+	return err
 }
