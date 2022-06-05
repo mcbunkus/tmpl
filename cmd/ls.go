@@ -6,8 +6,6 @@ package cmd
 
 import (
 	"fmt"
-	"io/fs"
-	"path/filepath"
 	"tmpl/lib"
 
 	"github.com/spf13/cobra"
@@ -18,28 +16,12 @@ var lsCmd = &cobra.Command{
 	Use:   "ls",
 	Short: "List templates in template directory",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		tmplDir, err := lib.TemplateDir()
+		templates, err := lib.GetTemplates()
 		if err != nil {
 			return err
 		}
-
-		names := []string{}
-		filepath.WalkDir(tmplDir, func(path string, d fs.DirEntry, err error) error {
-			if d.IsDir() {
-				return nil
-			}
-
-			if err != nil {
-				return err
-			}
-
-			names = append(names, d.Name())
-
-			return nil
-		})
-
-		for _, name := range names {
-			fmt.Println(name)
+		for _, template := range templates {
+			fmt.Println(template)
 		}
 		return nil
 	},

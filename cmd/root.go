@@ -17,11 +17,10 @@ package cmd
 
 import (
 	"fmt"
+	"github.com/spf13/cobra"
 	"os"
 	"path/filepath"
 	"tmpl/lib"
-
-	"github.com/spf13/cobra"
 )
 
 const longDesc = `Generate a project from a given yaml template. For example:
@@ -39,18 +38,22 @@ to produce an example yaml template file.
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
-	Use:           "tmpl",
-	SilenceUsage:  true,
-	SilenceErrors: true,
-	Short:         "Generate projects from yaml templates",
-	Long:          longDesc,
-	Args:          cobra.ExactArgs(1),
-	ArgAliases:    []string{"template-file"},
-	RunE: func(cmd *cobra.Command, args []string) error {
-		name := args[0]
+	Use: "tmpl",
+	// SilenceUsage:  true,
+	// SilenceErrors: true,
+	Short:      "Generate projects from yaml templates",
+	Long:       longDesc,
+	Args:       cobra.MaximumNArgs(1),
+	ArgAliases: []string{"template-file"},
+	RunE: func(cmd *cobra.Command, args []string) (err error) {
+		name, err := getTemplateName(args)
+		if err != nil {
+			return
+		}
+
 		tmplDir, err := lib.TemplateDir()
 		if err != nil {
-			return err
+			return
 		}
 
 		fname := filepath.Join(tmplDir, name)
@@ -62,16 +65,28 @@ var rootCmd = &cobra.Command{
 
 		file, err := os.Open(fname)
 		if err != nil {
-			return err
+			return
 		}
 
 		conf, err := lib.NewSpec(file)
 		if err != nil {
-			return err
+			return
 		}
 
 		return conf.Build()
 	},
+}
+
+func getTemplateName(args []string) (name string, err error) {
+	if len(args) == 0 {
+		name, err = lib.PromptForTemplate()
+		if err != nil {
+			return
+		}
+	} else {
+		name = args[0]
+	}
+	return
 }
 
 // Execute adds all child commands to the root command and sets flags appropriately.
