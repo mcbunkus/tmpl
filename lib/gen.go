@@ -1,4 +1,4 @@
-package config
+package lib
 
 const BlankConfig = `
 name: <your-name-here>

@@ -1,4 +1,4 @@
-package config
+package lib
 
 import (
 	"log"
@@ -13,7 +13,7 @@ type Dir struct {
 }
 
 // Build will create files and nested directories.
-func (d *Dir) Build(c *Config) {
+func (d *Dir) Build(c *TemplateConfig) {
 	if err := os.MkdirAll(d.Name, DefaultPermissions); err != nil {
 		log.Println(err)
 		return
