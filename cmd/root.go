@@ -17,22 +17,22 @@ package cmd
 
 import (
 	"fmt"
-	"log"
 	"os"
-	"tmpl/config"
+	"path/filepath"
+	"tmpl/lib"
 
 	"github.com/spf13/cobra"
 )
 
 const longDesc = `Generate a project from a given yaml template. For example:
 
-	tmpl template.yaml
+	tmpl <template-name>
 
 will produce a new project in the current directory. Templates
 consist of nested file and directory declarations. An example 
 template can be generated using the gen command. Run 
 
-	tmpl gen example.yaml
+	tmpl gen example
 
 to produce an example yaml template file. 
 `
@@ -44,12 +44,26 @@ var rootCmd = &cobra.Command{
 	Long:       longDesc,
 	Args:       cobra.ExactArgs(1),
 	ArgAliases: []string{"template-file"},
-	Run: func(cmd *cobra.Command, args []string) {
-		conf, err := config.NewConfig(args[0])
+	RunE: func(cmd *cobra.Command, args []string) error {
+		name := args[0]
+		tmplDir, err := lib.TemplateDir()
 		if err != nil {
-			log.Fatalln(err)
+			return err
 		}
+
+		fname := filepath.Join(tmplDir, name)
+		file, err := os.Open(fname)
+		if err != nil {
+			return err
+		}
+
+		conf, err := lib.NewTemplateConfig(file)
+		if err != nil {
+			return err
+		}
+
 		conf.Build()
+		return nil
 	},
 }
 

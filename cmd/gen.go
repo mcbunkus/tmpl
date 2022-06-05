@@ -16,9 +16,10 @@ limitations under the License.
 package cmd
 
 import (
-	"log"
+	"fmt"
 	"os"
-	"tmpl/config"
+	"path/filepath"
+	"tmpl/lib"
 
 	"github.com/spf13/cobra"
 )
@@ -28,10 +29,21 @@ var genCmd = &cobra.Command{
 	Use:   "gen",
 	Short: "Generate a blank template",
 	Args:  cobra.ExactArgs(1),
-	Run: func(cmd *cobra.Command, args []string) {
-		if err := os.WriteFile(args[0], []byte(config.BlankConfig), 0o666); err != nil {
-			log.Fatalln(err)
+	RunE: func(cmd *cobra.Command, args []string) error {
+		tmplName := args[0]
+		tmplDir, err := lib.TemplateDir()
+		if err != nil {
+			return err
 		}
+
+		path := filepath.Join(tmplDir, tmplName)
+		if err := os.WriteFile(path, []byte(lib.BlankConfig), 0o666); err != nil {
+			return err
+		}
+
+		fmt.Printf("generated %s in %s :)\n", tmplName, tmplDir)
+		fmt.Printf("generate the template in this directory with: tmpl %s\n", tmplName)
+		return nil
 	},
 }
 
