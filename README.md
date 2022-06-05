@@ -29,7 +29,7 @@ ed` without any arguments. It will interactively prompt you with a list of
 suggestions which is a list of all the template files in the template directory.
 
 Here's an example:
-~[prompt](doc/prompt.png)
+![prompt](doc/prompt.png)
 
 All templates are stored in `$HOME/.tmpl/templates/`. I might add some
 configuration to change this, or whatever else that's configurable in the
