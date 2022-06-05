@@ -39,11 +39,13 @@ to produce an example yaml template file.
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
-	Use:        "tmpl",
-	Short:      "Generate projects from yaml templates",
-	Long:       longDesc,
-	Args:       cobra.ExactArgs(1),
-	ArgAliases: []string{"template-file"},
+	Use:           "tmpl",
+	SilenceUsage:  true,
+	SilenceErrors: true,
+	Short:         "Generate projects from yaml templates",
+	Long:          longDesc,
+	Args:          cobra.ExactArgs(1),
+	ArgAliases:    []string{"template-file"},
 	RunE: func(cmd *cobra.Command, args []string) error {
 		name := args[0]
 		tmplDir, err := lib.TemplateDir()
@@ -52,18 +54,23 @@ var rootCmd = &cobra.Command{
 		}
 
 		fname := filepath.Join(tmplDir, name)
+
+		if _, err := os.Stat(fname); os.IsNotExist(err) {
+			name := filepath.Base(fname)
+			return fmt.Errorf("%s doesn't exist, generate it with \"tmpl gen %s\"", name, name)
+		}
+
 		file, err := os.Open(fname)
 		if err != nil {
 			return err
 		}
 
-		conf, err := lib.NewTemplateConfig(file)
+		conf, err := lib.NewSpec(file)
 		if err != nil {
 			return err
 		}
 
-		conf.Build()
-		return nil
+		return conf.Build()
 	},
 }
 
