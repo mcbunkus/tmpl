@@ -2,10 +2,25 @@ package lib
 
 import (
 	"fmt"
+	"io/fs"
 	"os"
 	"os/user"
 	"path/filepath"
+
+	"github.com/AlecAivazis/survey/v2"
 )
+
+// PromptForTemplate is a helper for interactively querying the user for what template they want to use.
+func PromptForTemplate() (string, error) {
+	templates, err := GetTemplates()
+	if err != nil {
+		return "", err
+	}
+	template := ""
+	prompt := &survey.Input{Message: "What template do you want to use?", Suggest: func(toComplete string) []string { return templates }}
+	err = survey.AskOne(prompt, &template)
+	return template, err
+}
 
 // WorkDirectory returns the path to the working directory,
 // by default in $HOME/.config/tmpl.
@@ -36,6 +51,31 @@ func TemplateDir() (string, error) {
 	templateDir := filepath.Join(workDir, "templates")
 	err = os.MkdirAll(templateDir, 0o755)
 	return templateDir, err
+}
+
+func GetTemplates() ([]string, error) {
+	names := []string{}
+
+	tmplDir, err := TemplateDir()
+	if err != nil {
+		return names, err
+	}
+
+	err = filepath.WalkDir(tmplDir, func(path string, d fs.DirEntry, err error) error {
+		if d.IsDir() {
+			return nil
+		}
+
+		if err != nil {
+			return err
+		}
+
+		names = append(names, d.Name())
+
+		return nil
+	})
+
+	return names, err
 }
 
 // wrapError appends a new error to the end of an existing one,
