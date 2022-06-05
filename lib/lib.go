@@ -30,7 +30,7 @@ func WorkDirectory() (string, error) {
 		return "", err
 	}
 
-	path := filepath.Join(user.HomeDir, ".config", "tmpl")
+	path := filepath.Join(user.HomeDir, ".tmpl")
 
 	if _, err := os.Stat(path); os.IsNotExist(err) {
 		if err := os.MkdirAll(path, 0o755); err != nil {
