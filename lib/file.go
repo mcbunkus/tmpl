@@ -3,8 +3,14 @@ package lib
 import (
 	"fmt"
 	"os"
+	"strings"
 	"text/template"
 )
+
+var funcMap = template.FuncMap{
+	"yell":  strings.ToUpper,
+	"title": strings.Title,
+}
 
 // File describes a file with a name and optionally it's content. Go template
 // syntax can be used to fill in variables defined in the variables section in
@@ -17,7 +23,7 @@ type File struct {
 // Build will create the file and write its contents. Templated variables will
 // also be filled in, <no value> will be written in invalid variables.
 func (f *File) Build(c *Spec) error {
-	textTmpl, err := template.New(f.Name).Parse(f.Content)
+	textTmpl, err := template.New(f.Name).Funcs(funcMap).Parse(f.Content)
 	if err != nil {
 		return fmt.Errorf("%s template failed: %s", f.Name, err.Error())
 	}
