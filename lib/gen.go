@@ -1,6 +1,6 @@
 package lib
 
-const BlankConfig = `\
+const BlankConfig = `
 # You can specify template variables which can written to file contents.
 # It uses Go style template syntax.
 variables:
