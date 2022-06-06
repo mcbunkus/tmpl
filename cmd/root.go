@@ -17,10 +17,11 @@ package cmd
 
 import (
 	"fmt"
-	"github.com/spf13/cobra"
 	"os"
 	"path/filepath"
 	"tmpl/lib"
+
+	"github.com/spf13/cobra"
 )
 
 const longDesc = `Generate a project from a given yaml template. For example:
@@ -43,9 +44,16 @@ var rootCmd = &cobra.Command{
 	// SilenceErrors: true,
 	Short:      "Generate projects from yaml templates",
 	Long:       longDesc,
-	Args:       cobra.MaximumNArgs(1),
 	ArgAliases: []string{"template-file"},
 	RunE: func(cmd *cobra.Command, args []string) (err error) {
+		userArgs := make(map[string]string)
+		if len(args) > 1 {
+			userArgs, err = lib.KeyValueMap(args[1:])
+			if err != nil {
+				return err
+			}
+		}
+
 		name, err := getTemplateName(args)
 		if err != nil {
 			return
@@ -71,6 +79,10 @@ var rootCmd = &cobra.Command{
 		conf, err := lib.NewSpec(file)
 		if err != nil {
 			return
+		}
+
+		if len(userArgs) != 0 {
+			conf.Variables = lib.MergeMaps(conf.Variables, userArgs)
 		}
 
 		return conf.Build()
