@@ -36,7 +36,7 @@ func (f *File) Build(c *Spec) error {
 	defer file.Close()
 
 	if err := textTmpl.Execute(file, c.Variables); err != nil {
-		fmt.Errorf("failed executing %s template: %s", f.Name, err.Error())
+		return fmt.Errorf("failed executing %s template: %s", f.Name, err.Error())
 	}
 
 	return nil
