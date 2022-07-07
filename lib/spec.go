@@ -9,8 +9,8 @@ import (
 
 // Spec describes the structure of the project template.
 type Spec struct {
-	Variables map[string]any `yaml:"variables"`
-	Template  Template       `yaml:"template"`
+	Variables map[string]string `yaml:"variables"`
+	Template  Template          `yaml:"template"`
 }
 
 // Build will build all of the templates defined in Templates.

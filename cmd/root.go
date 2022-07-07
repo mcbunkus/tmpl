@@ -1,92 +1,36 @@
-/*
-Copyright © 2021 NAME HERE <EMAIL ADDRESS>
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-*/
 package cmd
 
 import (
 	"fmt"
-	"github.com/spf13/cobra"
 	"os"
-	"path/filepath"
-	"tmpl/lib"
+
+	"github.com/spf13/cobra"
 )
 
-const longDesc = `Generate a project from a given yaml template. For example:
+const longDesc = `
+Generate a project from a given yaml template. For example:
 
-	tmpl <template-name>
+	tmpl generate <template-name> # tmpl gen <template-name> works too
 
 will produce a new project in the current directory. Templates
 consist of nested file and directory declarations. An example 
-template can be generated using the gen command. Run 
+template can be generated using the make command. Run 
 
-	tmpl gen example
+	tmpl make <template-name> # or tmpl mk <template-name>
 
-to produce an example yaml template file. 
+to produce an example yaml template file. You can open it in 
+your editor quickly with:
+
+	tmpl edit <template-name>
+
+if you have an EDITOR environment variable set.
 `
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
-	Use: "tmpl",
-	// SilenceUsage:  true,
-	// SilenceErrors: true,
-	Short:      "Generate projects from yaml templates",
-	Long:       longDesc,
-	Args:       cobra.MaximumNArgs(1),
-	ArgAliases: []string{"template-file"},
-	RunE: func(cmd *cobra.Command, args []string) (err error) {
-		name, err := getTemplateName(args)
-		if err != nil {
-			return
-		}
-
-		tmplDir, err := lib.TemplateDir()
-		if err != nil {
-			return
-		}
-
-		fname := filepath.Join(tmplDir, name)
-
-		if _, err := os.Stat(fname); os.IsNotExist(err) {
-			name := filepath.Base(fname)
-			return fmt.Errorf("%s doesn't exist, generate it with \"tmpl gen %s\"", name, name)
-		}
-
-		file, err := os.Open(fname)
-		if err != nil {
-			return
-		}
-
-		conf, err := lib.NewSpec(file)
-		if err != nil {
-			return
-		}
-
-		return conf.Build()
-	},
-}
-
-func getTemplateName(args []string) (name string, err error) {
-	if len(args) == 0 {
-		name, err = lib.PromptForTemplate()
-		if err != nil {
-			return
-		}
-	} else {
-		name = args[0]
-	}
-	return
+	Use:   "tmpl",
+	Short: "Generate projects from yaml templates",
+	Long:  longDesc,
 }
 
 // Execute adds all child commands to the root command and sets flags appropriately.

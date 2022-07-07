@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/user"
 	"path/filepath"
+	"strings"
 
 	"github.com/AlecAivazis/survey/v2"
 )
@@ -30,7 +31,7 @@ func WorkDirectory() (string, error) {
 		return "", err
 	}
 
-	path := filepath.Join(user.HomeDir, ".config", "tmpl")
+	path := filepath.Join(user.HomeDir, ".tmpl")
 
 	if _, err := os.Stat(path); os.IsNotExist(err) {
 		if err := os.MkdirAll(path, 0o755); err != nil {
@@ -86,4 +87,37 @@ func wrapError(err, newError error) error {
 		return err
 	}
 	return fmt.Errorf("%w\n%s", err, newError)
+}
+
+type BadKeyValueArg struct {
+	Arg string
+}
+
+func (b BadKeyValueArg) Error() string {
+	return fmt.Sprintf("could not parse %s", b.Arg)
+}
+
+// KeyValueMap takes a slice of strings with the format "key=value" and converts
+// them into a map.
+func KeyValueMap(args []string) (map[string]string, error) {
+	kvMap := make(map[string]string)
+	for _, arg := range args {
+		split := strings.Split(arg, "=")
+		if len(split) != 2 {
+			return kvMap, BadKeyValueArg{arg}
+		}
+		key, value := split[0], split[1]
+		kvMap[key] = value
+	}
+	return kvMap, nil
+}
+
+// MergeMaps takes an oldMap and a newMap, and merges the newMap into the old one.
+// This will overwrite keys in the old map, and this is intended, so users can
+// overwrite variables in the config if they want to
+func MergeMaps(oldMap, newMap map[string]string) map[string]string {
+	for k, v := range newMap {
+		oldMap[k] = v
+	}
+	return oldMap
 }
