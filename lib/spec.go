@@ -1,35 +1,35 @@
 package lib
 
 import (
-	"bytes"
 	"io"
 
-	"gopkg.in/yaml.v3"
+	"github.com/BurntSushi/toml"
 )
 
 // Spec describes the structure of the project template.
 type Spec struct {
-	Variables map[string]string `yaml:"variables"`
-	Template  Template          `yaml:"template"`
+	Variables map[string]string `toml:"variables"`
+	Templates []Template        `toml:"template"`
 }
 
 // Build will build all of the templates defined in Templates.
 func (c *Spec) Build() error {
-	return c.Template.Build(c)
+	for _, template := range c.Templates {
+		if err := template.Build(c); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 // NewSpec will generate a new Config from the given config file's path.
-func NewSpec(reader io.Reader) (conf *Spec, err error) {
-	conf = new(Spec)
-	buffer := new(bytes.Buffer)
-	if _, err = buffer.ReadFrom(reader); err != nil {
-		return
+func NewSpec(reader io.Reader) (*Spec, error) {
+	conf := new(Spec)
+	decoder := toml.NewDecoder(reader)
+
+	if _, err := decoder.Decode(conf); err != nil {
+		return nil, err
 	}
 
-	if err = yaml.Unmarshal(buffer.Bytes(), conf); err != nil {
-		return
-	}
-
-	return
-
+	return conf, nil
 }

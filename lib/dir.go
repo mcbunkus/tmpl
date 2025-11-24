@@ -1,3 +1,4 @@
+// Package lib contains common utility code used by subcommands in the cmd package
 package lib
 
 import (
@@ -7,16 +8,15 @@ import (
 // Dir consists of its name and nested templates, which could either be
 // Files and/or Directories
 type Dir struct {
-	Name string `yaml:"name"`
+	Name string `toml:"name"`
 
 	// the yaml parser doesn't like embedded structs :(
-	Files []File `yaml:"files"`
-	Dirs  []Dir  `yaml:"dirs"`
+	Files []File `toml:"files"`
+	Dirs  []Dir  `toml:"dirs"`
 }
 
 // Build will create files and nested directories.
 func (d *Dir) Build(c *Spec) error {
-
 	var err error = nil
 	if err := os.MkdirAll(d.Name, DefaultPermissions); err != nil {
 		return err
