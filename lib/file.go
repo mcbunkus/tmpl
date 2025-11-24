@@ -5,11 +5,13 @@ import (
 	"os"
 	"strings"
 	"text/template"
+
+	"golang.org/x/text/cases"
 )
 
 var funcMap = template.FuncMap{
 	"yell":  strings.ToUpper,
-	"title": strings.Title,
+	"title": cases.Title,
 }
 
 // File describes a file with a name and optionally it's content. Go template
@@ -40,5 +42,4 @@ func (f *File) Build(c *Spec) error {
 	}
 
 	return nil
-
 }

@@ -1,3 +1,4 @@
+// Package cmd contains all the subcommand implementations
 package cmd
 
 import (
