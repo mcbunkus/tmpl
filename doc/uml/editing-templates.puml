@@ -1,0 +1,40 @@
+@startuml editing-templates
+title Editing Templates
+
+
+start
+:Edit a given template;
+
+if ($EDITOR environment variable is set?) then (yes)
+
+    if (Template directory exists?) then (yes)
+
+        if (Template exists?) then (yes)
+            :Open template
+            in $EDITOR;
+        else (no)
+            :Create new template file
+            and open in $EDITOR;
+        endif
+
+    else (no)
+
+        :Create template directory;
+
+        if (Error?) then (yes)
+            :Report error;
+        else (no)
+            :Create new template file
+            and open in $EDITOR;
+        endif
+
+    endif
+
+else (no)
+    :Instruct user to set $EDITOR to
+    their preferred text editor;
+endif
+
+stop
+
+@enduml
