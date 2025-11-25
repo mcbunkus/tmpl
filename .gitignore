@@ -1,3 +1,4 @@
 build/
 tmpl
 .projectile
+.vscode/
