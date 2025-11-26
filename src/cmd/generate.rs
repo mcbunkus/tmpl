@@ -3,7 +3,6 @@ use minijinja::Environment;
 use std::{
     ffi::OsStr,
     fs::{create_dir_all, write},
-    path::PathBuf,
 };
 use toml::value::Datetime;
 
