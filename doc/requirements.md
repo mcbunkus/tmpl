@@ -9,7 +9,7 @@ generating notes, creating CMake files with boilerplate, license files, etc.
 ## Goals
 
 - Primary goal: automate boilerplate project and/or file creation
-- Secondary goal: dust off Go knowledge
+- Secondary goal: dust off Rust knowledge
 
 ## User Stories
 
@@ -60,4 +60,3 @@ generating notes, creating CMake files with boilerplate, license files, etc.
 ## Out of Scope
 
 - I honestly don't know yet, I'll come back here when something comes up
-
