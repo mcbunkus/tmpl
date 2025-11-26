@@ -1,0 +1,44 @@
+@startuml tmpl-overview
+title Tmpl Overview
+
+start
+
+:Parse arguments;
+
+:Check if user has $EDITOR;
+:Create template directory
+if necessary;
+
+:Switch command;
+
+split
+
+-> ls;
+:List templates 
+and their options;
+
+split again
+
+-> new;
+:Create a new,
+blank template;
+
+split again
+
+-> edit;
+:Edit an existing
+template in
+$EDITOR;
+
+split again
+
+-> gen;
+:Generate a given 
+template;
+
+end split
+
+
+stop
+
+@enduml

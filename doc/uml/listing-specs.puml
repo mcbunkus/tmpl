@@ -1,0 +1,33 @@
+@startuml listing-specs
+title Listing Specs
+
+start
+
+:List all templates;
+
+
+if (Template directory is empty?) then (yes)
+    :Report to user that they
+    don't have any templates yet;
+
+else (no)
+
+    if (List with template variable defaults) then (yes)
+        while (More templates?) is (yes)
+            :Unmarshal template;
+            :Get default options;
+            :Print template name and its arguments;
+        endwhile (no)
+    else (no)
+        while (More templates?) is (yes)
+            :Print template name;
+        endwhile (no)
+    endif
+
+
+endif
+
+
+stop
+
+@enduml

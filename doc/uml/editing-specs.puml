@@ -1,0 +1,19 @@
+@startuml editing-specs
+title Editing a Spec
+
+
+start
+:Edit a given template;
+
+
+if (Template exists?) then (yes)
+    :Open template
+    in $EDITOR;
+else (no)
+endif
+
+
+
+stop
+
+@enduml

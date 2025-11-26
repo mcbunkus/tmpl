@@ -1,0 +1,17 @@
+@startuml tmpl-use-case
+left to right direction
+title Tmpl Use Case
+
+actor User as user
+actor Developer as dev
+
+rectangle tmpl {
+    user --> (Generate files with options)
+    user --> (Create new templates,\nwith options and defaults)
+    user --> (Edit existing templates)
+    user --> (List existing templates,\nwith options and defaults)
+}
+
+
+
+@enduml

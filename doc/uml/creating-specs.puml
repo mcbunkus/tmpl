@@ -1,0 +1,33 @@
+@startuml creating-specs
+title Creating a Spec
+
+
+start
+:Create a new template with a name;
+
+if (Template exists?) then (yes)
+    :Prompt user if they 
+    want to overwrite;
+
+    if (Overwrite?) then (yes)
+    else (no)
+        stop
+    endif
+
+else (no)
+
+:Write example template
+to file;
+
+endif
+
+if (Open in editor?) then (yes)
+    :Spawn $EDITOR and pass
+    template file as an argument;
+else (no)
+
+endif
+
+stop
+
+@enduml

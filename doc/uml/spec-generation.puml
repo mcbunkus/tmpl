@@ -1,0 +1,26 @@
+@startuml spec-generation
+title Spec Generation
+
+start
+
+:Generate spec with
+user-specified options;
+
+if (Spec exists in\nspec directory?) then (yes)
+    :Unmarshal spec file;
+
+    while (More templates and no errors?) is (true)
+        :Create parent directories if needed;
+
+        :Apply options and defaults
+        to template contents;
+
+        :Write templatized contents to path;
+    endwhile (false)
+else (no)
+    :Report to user that spec doesn't exist;
+endif
+
+stop
+
+@enduml
