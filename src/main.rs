@@ -1,29 +1,83 @@
-mod cli;
 mod cmd;
 mod editor;
 mod prompt;
 mod specs;
 
 use anyhow::Result;
-use clap::Parser;
+use clap::{Parser, Subcommand};
 use directories::ProjectDirs;
 use std::fs;
 
-use crate::{
-    cli::{Cli, Commands},
-    specs::Specs,
-};
+use crate::specs::Specs;
+
+use std::ffi::OsString;
+
+/// tmpl is a barebones command line tool for generating multiple templated files from a single
+/// TOML spec.
+#[derive(Parser)]
+#[command(version, about)]
+pub struct Cli {
+    #[command(subcommand)]
+    pub command: Commands,
+}
+
+#[derive(Debug, Subcommand)]
+pub enum Commands {
+    /// List specs in the specs directory
+    Ls {
+        /// List the default arguments for each spec
+        #[arg(short, long)]
+        list_vars: bool,
+    },
+
+    /// Create a new spec with some example content. The new spec will be opened in your $EDITOR, unless
+    /// --no-edit is specified
+    New {
+        /// The name of your new spec
+        name: OsString,
+
+        /// Don't open it in your $EDITOR after creation
+        #[arg(long = "no-edit", default_value_t = true, action = clap::ArgAction::SetFalse)]
+        edit: bool,
+    },
+
+    /// Generate templates from a spec, with options if specified in your spec file
+    Gen {
+        /// The spec's name
+        name: OsString,
+
+        /// Options as key-value pairs (can be specified multiple times)
+        #[arg(short = 'o', value_names = ["KEY", "VALUE"], num_args = 2)]
+        options: Vec<String>,
+    },
+
+    /// Open a spec in your editor of choice
+    Edit {
+        /// The spec's name
+        name: OsString,
+    },
+
+    /// Delete one or more specs
+    Rm {
+        to_delete: Vec<OsString>,
+
+        /// Confirm yes for all given specs
+        #[arg(short = 'y', long = "yes", default_value_t = false, action = clap::ArgAction::SetTrue)]
+        skip_prompt: bool,
+    },
+}
 
 fn main() -> Result<()> {
     let cli = Cli::parse();
 
+    // ensure the default spec directory exists before proceeding.
+    // TODO: make the spec directory location configurable?
     let spec_dir = ProjectDirs::from("org", "mcbunkus", "tmpl")
         .ok_or_else(|| anyhow::anyhow!("Unable to find base directories"))?
         .data_dir()
         .to_path_buf();
 
     fs::create_dir_all(&spec_dir)?;
-
     let specs = Specs::new(&spec_dir)?;
 
     match cli.command {
