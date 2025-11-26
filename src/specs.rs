@@ -1,7 +1,6 @@
 use anyhow::{Context, Result, ensure};
 use serde::{Deserialize, Serialize};
 use std::{
-    collections::HashMap,
     ffi::OsStr,
     fs,
     path::{Path, PathBuf},
@@ -11,7 +10,7 @@ use std::{
 /// their defaults), and all the files tmpl will generate.
 #[derive(Debug, Deserialize, Serialize)]
 pub struct Spec {
-    pub variables: HashMap<String, toml::Value>,
+    pub variables: toml::Table,
     pub templates: Vec<Template>,
 }
 

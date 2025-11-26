@@ -5,8 +5,39 @@ use std::{
     fs::{create_dir_all, write},
     path::PathBuf,
 };
+use toml::value::Datetime;
 
 use crate::specs::{Spec, Specs};
+
+/// Merge options specified by the user through the command line, with variables defined in their
+/// spec. The command line option is added to this map if it doesn't already exist, otherwise, it
+/// overwrites the variable defined in the spec. This gives the user the ability to define defaults
+/// in the spec, but easily override them when generating the spec from the command line.
+fn merge_options(defaults: &toml::Table, options: Vec<String>) -> toml::Table {
+    let mut variables = defaults.clone();
+
+    let chunks = options.chunks(2).filter_map(|chunk| {
+        if chunk.len() == 2 {
+            Some((chunk[0].clone(), chunk[1].clone()))
+        } else {
+            None
+        }
+    });
+
+    for (key, var) in chunks {
+        let value = var
+            .parse::<i64>()
+            .map(toml::Value::Integer)
+            .or_else(|_| var.parse::<f64>().map(toml::Value::Float))
+            .or_else(|_| var.parse::<bool>().map(toml::Value::Boolean))
+            .or_else(|_| var.parse::<Datetime>().map(toml::Value::Datetime))
+            .unwrap_or_else(|_| toml::Value::String(var.clone()));
+
+        variables.insert(key, value);
+    }
+
+    variables
+}
 
 /// generate corresponds to the gen subcommand. It generates the given template spec
 pub fn generate(specs: &Specs, name: &OsStr, options: Vec<String>) -> Result<()> {
@@ -14,53 +45,168 @@ pub fn generate(specs: &Specs, name: &OsStr, options: Vec<String>) -> Result<()>
         .get_spec(name)
         .context("Unable to parse template file")?;
 
-    // Copy the user's variable definitions in the spec as defaults, and override any of them if
-    // specified as an option to the gen command. It attempts to convert to a toml::Value if
-    // possible, and as a string if it can't.
-    let mut variables = spec.variables.clone();
-    for chunk in options.chunks(2) {
-        if chunk.len() == 2 {
-            let key = &chunk[0];
-            let value = &chunk[1];
-            let toml_value = toml::from_str::<toml::Value>(value)
-                .unwrap_or_else(|_| toml::Value::String(value.clone()));
-            variables.insert(key.clone(), toml_value);
-        }
-    }
-
-    // Converts the template entries in the spec to a format acceptable to minijinja add_template
-    // function. Environment::add_template expects 2 &str that must live for the lifetime of its
-    // instance, so all this block is doing is converting the templates' PathBuf into something
-    // that lives for the lifetime of env below
-    let templates: Vec<(PathBuf, String, &str)> = spec
-        .templates
-        .iter()
-        .map(|t| -> Result<(PathBuf, String, &str)> {
-            let name = t
-                .path
-                .to_str()
-                .ok_or_else(|| anyhow::anyhow!("Invalid UTF-8 in template path"))?
-                .to_string();
-
-            // to_path_buf to copy it, basically. Not ideal here
-            Ok((t.path.to_path_buf(), name, t.body.as_ref()))
-        })
-        .collect::<Result<Vec<_>>>()?;
+    // Merging options specified by the user with the defaults in their spec.
+    let variables = merge_options(&spec.variables, options);
 
     // minijinja
     let mut env = Environment::new();
 
-    for (path, name, template) in &templates {
-        env.add_template(name, template)?;
-        let render = env.get_template(name)?.render(&variables)?;
+    let mut errors = Vec::new();
 
-        if let Some(parent) = path.parent() {
-            create_dir_all(parent)?;
+    for t in &spec.templates {
+        //
+        let result = (|| -> Result<()> {
+            let name = t
+                .path
+                .to_str()
+                .ok_or_else(|| anyhow::anyhow!("Invalid UTF-8 in template path"))?;
+
+            env.add_template(name, &t.body)?;
+            let render = env.get_template(name)?.render(&variables)?;
+
+            if let Some(parent) = t.path.parent() {
+                create_dir_all(parent)?;
+            }
+
+            write(&t.path, render)?;
+            println!("{}", name);
+            Ok(())
+        })();
+
+        if let Err(e) = result {
+            errors.push((t.path.display().to_string(), e));
+        }
+    }
+
+    if !errors.is_empty() {
+        eprintln!(
+            "\nThe following errors occurred while generating {}",
+            name.display()
+        );
+
+        for (path, err) in &errors {
+            eprintln!("\t{}: {:#}", path, err);
         }
 
-        write(path, render)?;
-        println!("{}", name);
+        return Err(anyhow::anyhow!(
+            "{} template(s) in {} failed to generate",
+            errors.len(),
+            name.display()
+        ));
     }
 
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_merge_options_empty_options() {
+        let mut defaults = toml::Table::new();
+        defaults.insert("user".to_string(), toml::Value::String("alice".to_string()));
+        defaults.insert("count".to_string(), toml::Value::Integer(5));
+
+        let result = merge_options(&defaults, vec![]);
+
+        assert_eq!(result, defaults);
+    }
+
+    #[test]
+    fn test_merge_options_string_values() {
+        let defaults = toml::Table::new();
+        let options = vec!["name".to_string(), "Bob".to_string()];
+
+        let result = merge_options(&defaults, options);
+
+        assert_eq!(
+            result.get("name"),
+            Some(&toml::Value::String("Bob".to_string()))
+        );
+    }
+
+    #[test]
+    fn test_merge_options_integer_parsing() {
+        let defaults = toml::Table::new();
+        let options = vec!["count".to_string(), "42".to_string()];
+
+        let result = merge_options(&defaults, options);
+
+        assert_eq!(result.get("count"), Some(&toml::Value::Integer(42)));
+    }
+
+    #[test]
+    fn test_merge_options_boolean_parsing() {
+        let defaults = toml::Table::new();
+        let options = vec![
+            "enabled".to_string(),
+            "true".to_string(),
+            "disabled".to_string(),
+            "false".to_string(),
+        ];
+
+        let result = merge_options(&defaults, options);
+
+        assert_eq!(result.get("enabled"), Some(&toml::Value::Boolean(true)));
+        assert_eq!(result.get("disabled"), Some(&toml::Value::Boolean(false)));
+    }
+
+    #[test]
+    fn test_merge_options_overrides_defaults() {
+        let mut defaults = toml::Table::new();
+        defaults.insert("user".to_string(), toml::Value::String("alice".to_string()));
+        defaults.insert("count".to_string(), toml::Value::Integer(5));
+
+        let options = vec!["user".to_string(), "bob".to_string()];
+
+        let result = merge_options(&defaults, options);
+
+        assert_eq!(
+            result.get("user"),
+            Some(&toml::Value::String("bob".to_string()))
+        );
+        assert_eq!(result.get("count"), Some(&toml::Value::Integer(5))); // unchanged
+    }
+
+    #[test]
+    fn test_merge_options_odd_number_ignored() {
+        let mut defaults = toml::Table::new();
+        defaults.insert(
+            "existing".to_string(),
+            toml::Value::String("value".to_string()),
+        );
+
+        // 3 options - the last one has no value so should be ignored
+        let options = vec![
+            "key1".to_string(),
+            "value1".to_string(),
+            "incomplete".to_string(),
+        ];
+
+        let result = merge_options(&defaults, options);
+
+        assert_eq!(
+            result.get("key1"),
+            Some(&toml::Value::String("value1".to_string()))
+        );
+        assert_eq!(result.get("incomplete"), None); // not added
+        assert_eq!(
+            result.get("existing"),
+            Some(&toml::Value::String("value".to_string()))
+        ); // unchanged
+    }
+
+    #[test]
+    fn test_merge_options_invalid_toml_becomes_string() {
+        let defaults = toml::Table::new();
+        let options = vec!["weird".to_string(), "not-valid-toml!@#".to_string()];
+
+        let result = merge_options(&defaults, options);
+
+        assert_eq!(
+            result.get("weird"),
+            Some(&toml::Value::String("not-valid-toml!@#".to_string()))
+        );
+    }
 }

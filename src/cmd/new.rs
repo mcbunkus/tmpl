@@ -1,4 +1,4 @@
-use std::{collections::HashMap, env, ffi::OsStr};
+use std::{env, ffi::OsStr};
 
 use anyhow::Result;
 
@@ -17,7 +17,7 @@ Created by {{ user }}.
 
 pub fn new(specs: &Specs, name: &OsStr, edit: bool) -> Result<()> {
     let mut spec = Spec {
-        variables: HashMap::new(),
+        variables: toml::Table::new(),
         templates: Vec::new(),
     };
 
