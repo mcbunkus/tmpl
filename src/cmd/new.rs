@@ -1,13 +1,21 @@
-use std::{collections::HashMap, env, ffi::OsString, fs, path::PathBuf, process::Command};
+use std::{collections::HashMap, env, ffi::OsStr};
 
-use anyhow::{Context, Result};
+use anyhow::Result;
 
-use crate::template::{Spec, Template};
+use crate::{
+    editor,
+    specs::{Spec, Specs, Template},
+};
 
-pub fn new(template_directory: PathBuf, name: String, edit: bool, editor: OsString) -> Result<()> {
-    let template_path = template_directory.join(&name);
-    anyhow::ensure!(!template_path.is_file(), "{} already exists", name);
+mod example {
+    pub const README_BODY: &str = "
+# {{ project }}
 
+Created by {{ user }}.
+";
+}
+
+pub fn new(specs: &Specs, name: &OsStr, edit: bool) -> Result<()> {
     let mut spec = Spec {
         variables: HashMap::new(),
         templates: Vec::new(),
@@ -16,29 +24,25 @@ pub fn new(template_directory: PathBuf, name: String, edit: bool, editor: OsStri
     // this isn't super important, it's just for the sake of example
     let username = env::var("USER") // Unix/Linux/macOS
         .or_else(|_| env::var("USERNAME")) // Windows
-        .unwrap_or_else(|_| "awesome.user".to_string());
+        .unwrap_or_else(|_| "username".to_string());
 
     spec.variables
         .insert("user".into(), toml::Value::String(username));
 
+    spec.variables
+        .insert("project".into(), toml::Value::String("project-name".into()));
+
     spec.templates.push(Template {
-        path: PathBuf::from("doc").join("README.md"),
-        body: "Hello, {{ user }}!".into(),
+        path: "README.md".into(),
+        body: example::README_BODY.into(),
     });
 
-    let toml_string = toml::to_string(&spec)?;
-
-    fs::write(&template_path, toml_string)?;
-    println!("Created {}", name);
+    specs.write_spec(name, &spec)?;
+    println!("Created {}", name.display());
 
     if edit {
-        Command::new(&editor)
-            .arg(&template_path)
-            .status()
-            .context("Failed to launch editor")?
-            .success()
-            .then_some(())
-            .context("Editor exited with non-zero status")?;
+        let path = specs.get_path(name)?;
+        return editor::start(&path);
     }
 
     Ok(())

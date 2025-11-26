@@ -1,25 +1,22 @@
 use anyhow::{Context, Result};
 use minijinja::Environment;
 use std::{
-    fs::{create_dir_all, read_to_string, write},
+    ffi::OsStr,
+    fs::{create_dir_all, write},
     path::PathBuf,
 };
 
-use crate::template::Spec;
+use crate::specs::{Spec, Specs};
 
 /// generate corresponds to the gen subcommand. It generates the given template spec
-pub fn generate(template_directory: PathBuf, name: String, options: Vec<String>) -> Result<()> {
-    let template_file = template_directory.join(&name);
-    anyhow::ensure!(template_file.exists(), "{} does not exist", &name);
-
-    let contents =
-        read_to_string(template_file).context("Unable to open template file for reading")?;
-
-    let spec: Spec = toml::from_str(&contents).context("Unable to parse template file")?;
+pub fn generate(specs: &Specs, name: &OsStr, options: Vec<String>) -> Result<()> {
+    let spec: Spec = specs
+        .get_spec(name)
+        .context("Unable to parse template file")?;
 
     // Copy the user's variable definitions in the spec as defaults, and override any of them if
     // specified as an option to the gen command. It attempts to convert to a toml::Value if
-    // possible as well
+    // possible, and as a string if it can't.
     let mut variables = spec.variables.clone();
     for chunk in options.chunks(2) {
         if chunk.len() == 2 {
@@ -33,8 +30,8 @@ pub fn generate(template_directory: PathBuf, name: String, options: Vec<String>)
 
     // Converts the template entries in the spec to a format acceptable to minijinja add_template
     // function. Environment::add_template expects 2 &str that must live for the lifetime of its
-    // instance, so all this block is doing is converting the templates' PathBuf to a String for
-    // add_template
+    // instance, so all this block is doing is converting the templates' PathBuf into something
+    // that lives for the lifetime of env below
     let templates: Vec<(PathBuf, String, &str)> = spec
         .templates
         .iter()

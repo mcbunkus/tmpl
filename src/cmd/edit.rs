@@ -1,18 +1,10 @@
-use std::{ffi::OsString, path::PathBuf, process::Command};
+use std::ffi::OsStr;
 
-use anyhow::{Context, Result};
+use crate::{editor, specs::Specs};
 
-pub fn edit(template_directory: PathBuf, name: String, editor: OsString) -> Result<()> {
-    let template_path = template_directory.join(&name);
+use anyhow::Result;
 
-    anyhow::ensure!(template_path.exists(), "{} does not exist", name);
-    anyhow::ensure!(template_path.is_file(), "{} is not a file", name);
-
-    Command::new(&editor)
-        .arg(&template_path)
-        .status()
-        .context("Failed to launch editor")?
-        .success()
-        .then_some(())
-        .context("Editor exited with non-zero status")
+pub fn edit(specs: &Specs, name: &OsStr) -> Result<()> {
+    let path = specs.get_path(name)?;
+    editor::start(&path)
 }

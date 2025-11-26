@@ -1,22 +1,19 @@
 use anyhow::{Context, Result};
-use std::{
-    fs::{self, DirEntry},
-    path::PathBuf,
-};
+use std::fs::{self, DirEntry};
 
-use crate::template::Spec;
+use crate::specs::{Spec, Specs};
 
-fn list_without_vars(entries: Vec<DirEntry>) -> Result<()> {
-    for entry in entries {
-        println!("{}", entry.file_name().display());
+fn list_without_vars(specs: Vec<DirEntry>) -> Result<()> {
+    for spec in specs {
+        println!("{}", spec.file_name().display());
     }
 
     Ok(())
 }
 
-fn list_with_vars(entries: Vec<DirEntry>) -> Result<()> {
+fn list_with_vars(specs: Vec<DirEntry>) -> Result<()> {
     // I'm sure there's bugs galore in this section
-    let max_col_len = entries
+    let max_col_len = specs
         .iter()
         .map(|e| {
             if let Ok(s) = e.file_name().into_string() {
@@ -28,7 +25,7 @@ fn list_with_vars(entries: Vec<DirEntry>) -> Result<()> {
         .max()
         .unwrap_or(0);
 
-    for entry in entries {
+    for entry in specs {
         let contents = fs::read_to_string(entry.path()).context("Failed to open for reading")?;
         let spec: Spec = toml::from_str(&contents).context("Failed to parse spec file contents")?;
 
@@ -46,10 +43,10 @@ fn list_with_vars(entries: Vec<DirEntry>) -> Result<()> {
     Ok(())
 }
 
-pub fn list(template_directory: PathBuf, list_vars: bool) -> Result<()> {
-    // entries is a list of regular files in the templates directory. This block filters out
+pub fn list(specs: &Specs, list_vars: bool) -> Result<()> {
+    // entries is a list of regular files in the spec directory. This block filters out
     // anything that's not a regular file.
-    let entries: Vec<DirEntry> = fs::read_dir(&template_directory)?
+    let specs: Vec<DirEntry> = fs::read_dir(specs.dir())?
         .filter_map(|e| {
             if let Ok(entry) = e
                 && let Ok(file_type) = entry.file_type()
@@ -62,7 +59,7 @@ pub fn list(template_directory: PathBuf, list_vars: bool) -> Result<()> {
         })
         .collect();
 
-    if entries.is_empty() {
+    if specs.is_empty() {
         println!(
             "You don't have any templates yet. Please create a new one with: tmpl new <name of your template>"
         );
@@ -72,8 +69,8 @@ pub fn list(template_directory: PathBuf, list_vars: bool) -> Result<()> {
     // These functions assume everything in the entries vector is a regular file it can read. No
     // directories.
     if list_vars {
-        list_with_vars(entries)
+        list_with_vars(specs)
     } else {
-        list_without_vars(entries)
+        list_without_vars(specs)
     }
 }
