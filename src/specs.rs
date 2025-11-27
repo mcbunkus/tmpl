@@ -1,14 +1,14 @@
 use anyhow::{Context, Result, ensure};
 use serde::{Deserialize, Serialize};
 use std::{
-    ffi::OsStr,
+    ffi::{OsStr, OsString},
     fs,
     path::{Path, PathBuf},
 };
 
 /// Spec defines a full user template spec. It includes all the variables the user is setting (and
 /// their defaults), and all the files tmpl will generate.
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize, PartialEq)]
 pub struct Spec {
     pub variables: toml::Table,
     pub templates: Vec<Template>,
@@ -16,7 +16,7 @@ pub struct Spec {
 
 /// Template defines an entry in the spec, that contains the contents of a file, and its path. The
 /// path can be nested arbitrarily deep, tmpl will create parent directories as necessarry.
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize, PartialEq)]
 pub struct Template {
     pub path: PathBuf,
     pub body: String,
@@ -52,7 +52,7 @@ impl Specs {
     }
 
     /// Get the full path to a spec file.
-    pub fn get_path(&self, name: &OsStr) -> Result<PathBuf> {
+    pub fn get_spec_path(&self, name: &OsStr) -> Result<PathBuf> {
         let path = self.dir.join(name);
         ensure!(path.exists(), "{} doesn't exist", name.display());
         ensure!(path.is_file(), "{} is not a file", name.display());
@@ -60,7 +60,7 @@ impl Specs {
     }
 
     /// Deserialize a spec file and return it as a Spec struct.
-    pub fn get_spec(&self, name: &OsStr) -> Result<Spec> {
+    pub fn read_spec(&self, name: &OsStr) -> Result<Spec> {
         let contents = self
             .read_to_string(name)
             .context("Unable to open spec file for reading")?;
@@ -70,7 +70,7 @@ impl Specs {
 
     /// Delete a spec file.
     pub fn delete_spec(&self, name: &OsStr) -> Result<()> {
-        let path = self.get_path(name)?;
+        let path = self.get_spec_path(name)?;
         fs::remove_file(path).context("Failed to delete spec")
     }
 
@@ -89,5 +89,24 @@ impl Specs {
         ))?;
 
         Ok(())
+    }
+
+    /// Get all of the specs in the spec directory
+    pub fn get_all_specs(&self) -> Result<Vec<OsString>> {
+        let entries = fs::read_dir(&self.dir)?
+            .filter_map(|r| {
+                if let Ok(e) = r {
+                    if e.path().is_file() {
+                        Some(e.file_name())
+                    } else {
+                        None
+                    }
+                } else {
+                    None
+                }
+            })
+            .collect();
+
+        Ok(entries)
     }
 }

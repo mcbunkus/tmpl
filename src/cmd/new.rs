@@ -7,15 +7,7 @@ use crate::{
     specs::{Spec, Specs, Template},
 };
 
-mod example {
-    pub const README_BODY: &str = "
-# {{ project }}
-
-Created by {{ user }}.
-";
-}
-
-pub fn new(specs: &Specs, name: &OsStr, edit: bool) -> Result<()> {
+pub fn default_spec() -> Spec {
     let mut spec = Spec {
         variables: toml::Table::new(),
         templates: Vec::new(),
@@ -34,14 +26,25 @@ pub fn new(specs: &Specs, name: &OsStr, edit: bool) -> Result<()> {
 
     spec.templates.push(Template {
         path: "README.md".into(),
-        body: example::README_BODY.into(),
+        body: "
+# {{ project }}
+
+Created by {{ user }}.
+"
+        .into(),
     });
 
+    spec
+}
+
+/// Generates a new, blank spec in the spec directory.
+pub fn new(specs: &Specs, name: &OsStr, edit: bool) -> Result<()> {
+    let spec = default_spec();
     specs.write_spec(name, &spec)?;
     println!("Created {}", name.display());
 
     if edit {
-        let path = specs.get_path(name)?;
+        let path = specs.get_spec_path(name)?;
         return editor::start(&path);
     }
 

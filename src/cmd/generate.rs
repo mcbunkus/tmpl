@@ -41,7 +41,7 @@ fn merge_options(defaults: &toml::Table, options: Vec<String>) -> toml::Table {
 /// generate corresponds to the gen subcommand. It generates the given template spec
 pub fn generate(specs: &Specs, name: &OsStr, options: Vec<String>) -> Result<()> {
     let spec: Spec = specs
-        .get_spec(name)
+        .read_spec(name)
         .context("Unable to parse template file")?;
 
     // Merging options specified by the user with the defaults in their spec.

@@ -1,33 +1,34 @@
-use anyhow::{Context, Result};
-use std::fs::{self, DirEntry};
+use anyhow::Result;
+use std::ffi::OsString;
+use unicode_width::UnicodeWidthStr;
 
 use crate::specs::{Spec, Specs};
 
-fn list_without_vars(specs: Vec<DirEntry>) -> Result<()> {
+/// Simply list the name of all the specs in the spec directory.
+fn list_without_vars(specs: Vec<OsString>) -> Result<()> {
     for spec in specs {
-        println!("{}", spec.file_name().display());
+        println!("{}", spec.display());
     }
 
     Ok(())
 }
 
-fn list_with_vars(specs: Vec<DirEntry>) -> Result<()> {
-    // I'm sure there's bugs galore in this section
-    let max_col_len = specs
+/// List all the specs in the specs directory, including their default variables.
+fn list_with_vars(specs: &Specs, names: Vec<OsString>) -> Result<()> {
+    let max_col_len = names
         .iter()
-        .map(|e| {
-            if let Ok(s) = e.file_name().into_string() {
-                s.len()
+        .filter_map(|os| {
+            if let Ok(s) = os.clone().into_string() {
+                Some(s.width())
             } else {
-                e.file_name().len()
+                None
             }
         })
         .max()
         .unwrap_or(0);
 
-    for entry in specs {
-        let contents = fs::read_to_string(entry.path()).context("Failed to open for reading")?;
-        let spec: Spec = toml::from_str(&contents).context("Failed to parse spec file contents")?;
+    for name in names {
+        let spec: Spec = specs.read_spec(&name)?;
 
         let vars = spec
             .variables
@@ -36,30 +37,17 @@ fn list_with_vars(specs: Vec<DirEntry>) -> Result<()> {
             .collect::<Vec<_>>()
             .join(", ");
 
-        let name = entry.file_name();
         println!("{:<width$}\t{}", name.display(), vars, width = max_col_len);
     }
 
     Ok(())
 }
 
+/// ls subcommand entrypoint.
 pub fn list(specs: &Specs, list_vars: bool) -> Result<()> {
-    // entries is a list of regular files in the spec directory. This block filters out
-    // anything that's not a regular file.
-    let specs: Vec<DirEntry> = fs::read_dir(specs.dir())?
-        .filter_map(|e| {
-            if let Ok(entry) = e
-                && let Ok(file_type) = entry.file_type()
-                && file_type.is_file()
-            {
-                Some(entry)
-            } else {
-                None
-            }
-        })
-        .collect();
+    let all_specs = specs.get_all_specs()?;
 
-    if specs.is_empty() {
+    if all_specs.is_empty() {
         println!(
             "You don't have any templates yet. Please create a new one with: tmpl new <name of your template>"
         );
@@ -69,8 +57,8 @@ pub fn list(specs: &Specs, list_vars: bool) -> Result<()> {
     // These functions assume everything in the entries vector is a regular file it can read. No
     // directories.
     if list_vars {
-        list_with_vars(specs)
+        list_with_vars(specs, all_specs)
     } else {
-        list_without_vars(specs)
+        list_without_vars(all_specs)
     }
 }
