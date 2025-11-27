@@ -54,3 +54,36 @@ fn test_cp_command() {
         dst_name.display()
     );
 }
+
+#[test]
+fn test_ls_command() {
+    let sources = vec![
+        OsString::from("test1"),
+        OsString::from("test2"),
+        OsString::from("test3"),
+    ];
+
+    let temp = tempdir().unwrap();
+    let specs = Specs::new(temp.path()).unwrap();
+
+    for source in &sources {
+        cmd::new(&specs, source, false).unwrap();
+    }
+
+    let mut output_buffer = Vec::new();
+    cmd::list(&specs, false, &mut output_buffer).unwrap();
+    let output = String::from_utf8(output_buffer).unwrap();
+
+    for source in &sources {
+        let source_str = source.to_string_lossy();
+        assert!(
+            output.contains(source_str.as_ref()),
+            "expected output to contain '{}', got:\n{}",
+            source_str,
+            output
+        );
+    }
+
+    let line_count = output.lines().count();
+    assert_eq!(line_count, sources.len());
+}

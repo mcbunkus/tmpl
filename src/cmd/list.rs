@@ -5,16 +5,20 @@ use unicode_width::UnicodeWidthStr;
 use crate::specs::{Spec, Specs};
 
 /// Simply list the name of all the specs in the spec directory.
-fn list_without_vars(specs: Vec<OsString>) -> Result<()> {
+fn list_without_vars<W: std::io::Write>(specs: Vec<OsString>, writer: &mut W) -> Result<()> {
     for spec in specs {
-        println!("{}", spec.display());
+        writeln!(writer, "{}", spec.display());
     }
 
     Ok(())
 }
 
 /// List all the specs in the specs directory, including their default variables.
-fn list_with_vars(specs: &Specs, names: Vec<OsString>) -> Result<()> {
+fn list_with_vars<W: std::io::Write>(
+    specs: &Specs,
+    names: Vec<OsString>,
+    writer: &mut W,
+) -> Result<()> {
     let max_col_len = names
         .iter()
         .filter_map(|os| {
@@ -37,28 +41,35 @@ fn list_with_vars(specs: &Specs, names: Vec<OsString>) -> Result<()> {
             .collect::<Vec<_>>()
             .join(", ");
 
-        println!("{:<width$}\t{}", name.display(), vars, width = max_col_len);
+        writeln!(
+            writer,
+            "{:<width$}\t{}",
+            name.display(),
+            vars,
+            width = max_col_len
+        )?;
     }
 
     Ok(())
 }
 
 /// ls subcommand entrypoint.
-pub fn list(specs: &Specs, list_vars: bool) -> Result<()> {
+pub fn list<W: std::io::Write>(specs: &Specs, list_vars: bool, writer: &mut W) -> Result<()> {
     let all_specs = specs.get_all_specs()?;
 
     if all_specs.is_empty() {
-        println!(
+        writeln!(
+            writer,
             "You don't have any templates yet. Please create a new one with: tmpl new <name of your template>"
-        );
+        )?;
         return Ok(());
     }
 
     // These functions assume everything in the entries vector is a regular file it can read. No
     // directories.
     if list_vars {
-        list_with_vars(specs, all_specs)
+        list_with_vars(specs, all_specs, writer)
     } else {
-        list_without_vars(all_specs)
+        list_without_vars(all_specs, writer)
     }
 }

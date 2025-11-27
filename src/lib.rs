@@ -6,7 +6,7 @@ pub mod specs;
 
 use anyhow::Result;
 use clap::{Parser, Subcommand};
-use std::path::Path;
+use std::{io::stdout, path::Path};
 
 use crate::specs::Specs;
 
@@ -83,8 +83,10 @@ pub enum Commands {
 pub fn run(cli: Cli, spec_dir: &Path) -> Result<()> {
     let specs = Specs::new(spec_dir)?;
 
+    let mut output = stdout();
+
     match cli.command {
-        Commands::Ls { list_vars } => cmd::list(&specs, list_vars)?,
+        Commands::Ls { list_vars } => cmd::list(&specs, list_vars, &mut output)?,
         Commands::New { name, edit } => cmd::new(&specs, &name, edit)?,
         Commands::Gen { name, options } => cmd::generate(&specs, &name, options)?,
         Commands::Edit { name } => cmd::edit(&specs, &name)?,
