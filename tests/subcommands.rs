@@ -1,7 +1,10 @@
 use std::ffi::OsString;
 
 use tempfile::tempdir;
-use tmpl::{cmd::new, specs::Specs};
+use tmpl::{
+    cmd::{self, new},
+    specs::Specs,
+};
 
 #[test]
 fn test_new_command() {
@@ -23,4 +26,31 @@ fn test_new_command() {
     let default_spec = tmpl::cmd::new::default_spec();
 
     assert_eq!(parsed_spec, default_spec);
+}
+
+#[test]
+fn test_cp_command() {
+    let src_name = OsString::from("test.src");
+    let dst_name = OsString::from("test.dst");
+
+    let temp = tempdir().unwrap();
+    let specs = Specs::new(temp.path()).unwrap();
+
+    // this will succeed if test_new_command is succeeding
+    new(&specs, &src_name, false).unwrap();
+    cmd::cp(&specs, &src_name, &dst_name, true).unwrap();
+
+    let dst_path = temp.path().join(&dst_name);
+    assert!(dst_path.exists(), "{} does not exist", dst_path.display());
+
+    let src_content = specs.read_to_string(&src_name).unwrap();
+    let dst_content = specs.read_to_string(&dst_name).unwrap();
+
+    assert_eq!(
+        src_content,
+        dst_content,
+        "expected {} and {} to match",
+        src_name.display(),
+        dst_name.display()
+    );
 }
