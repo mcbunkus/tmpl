@@ -1,4 +1,4 @@
-use anyhow::{Context, Result};
+use anyhow::{Context, Result, ensure};
 use minijinja::Environment;
 use std::{
     ffi::OsStr,
@@ -6,7 +6,10 @@ use std::{
 };
 use toml::value::Datetime;
 
-use crate::specs::{Spec, Specs};
+use crate::{
+    path::path_is_safe,
+    specs::{Spec, Specs},
+};
 
 /// Merge options specified by the user through the command line, with variables defined in their
 /// spec. The command line option is added to this map if it doesn't already exist, otherwise, it
@@ -53,7 +56,12 @@ pub fn generate(specs: &Specs, name: &OsStr, options: Vec<String>) -> Result<()>
     let mut errors = Vec::new();
 
     for t in &spec.templates {
-        //
+        ensure!(
+            path_is_safe(&t.path),
+            "{} is not a valid path. tmpl only accepts relative paths that don't escape the current working directory for safety reasons",
+            t.path.display()
+        );
+
         let result = (|| -> Result<()> {
             let name = t
                 .path

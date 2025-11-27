@@ -44,7 +44,7 @@ pub fn new(specs: &Specs, name: &OsStr, edit: bool) -> Result<()> {
     println!("Created {}", name.display());
 
     if edit {
-        let path = specs.get_spec_path(name)?;
+        let path = specs.safe_get_spec_path(name)?;
         return editor::start(&path);
     }
 

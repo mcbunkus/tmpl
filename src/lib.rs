@@ -1,5 +1,6 @@
 pub mod cmd;
 mod editor;
+pub mod path;
 mod prompt;
 pub mod specs;
 
@@ -64,6 +65,19 @@ pub enum Commands {
         #[arg(short = 'y', long = "yes", default_value_t = false, action = clap::ArgAction::SetTrue)]
         skip_prompt: bool,
     },
+
+    /// Copy a spec
+    Cp {
+        /// The spec you want to copy
+        source: OsString,
+
+        /// The name of the new spec
+        dest: OsString,
+
+        /// Skip are you sure prompt
+        #[arg(short = 'y', long = "yes", default_value_t = false, action = clap::ArgAction::SetTrue)]
+        skip_prompt: bool,
+    },
 }
 
 pub fn run(cli: Cli, spec_dir: &Path) -> Result<()> {
@@ -74,6 +88,11 @@ pub fn run(cli: Cli, spec_dir: &Path) -> Result<()> {
         Commands::New { name, edit } => cmd::new(&specs, &name, edit)?,
         Commands::Gen { name, options } => cmd::generate(&specs, &name, options)?,
         Commands::Edit { name } => cmd::edit(&specs, &name)?,
+        Commands::Cp {
+            source,
+            dest,
+            skip_prompt,
+        } => cmd::cp(&specs, &source, &dest, skip_prompt)?,
         Commands::Rm {
             to_delete,
             skip_prompt,
