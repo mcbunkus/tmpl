@@ -6,7 +6,10 @@ pub mod specs;
 
 use anyhow::Result;
 use clap::{Parser, Subcommand};
-use std::{io::stdout, path::Path};
+use std::{
+    io::{stderr, stdout},
+    path::Path,
+};
 
 use crate::specs::Specs;
 
@@ -83,12 +86,15 @@ pub enum Commands {
 pub fn run(cli: Cli, spec_dir: &Path) -> Result<()> {
     let specs = Specs::new(spec_dir)?;
 
-    let mut output = stdout();
+    let mut stdout = stdout();
+    let mut stderr = stderr();
 
     match cli.command {
-        Commands::Ls { list_vars } => cmd::list(&specs, list_vars, &mut output)?,
-        Commands::New { name, edit } => cmd::new(&specs, &name, edit)?,
-        Commands::Gen { name, options } => cmd::generate(&specs, &name, options)?,
+        Commands::Ls { list_vars } => cmd::list(&specs, list_vars, &mut stdout)?,
+        Commands::New { name, edit } => cmd::new(&specs, &name, edit, &mut stdout)?,
+        Commands::Gen { name, options } => {
+            cmd::generate(&specs, &name, options, &mut stdout, &mut stderr)?
+        }
         Commands::Edit { name } => cmd::edit(&specs, &name)?,
         Commands::Cp {
             source,
@@ -98,7 +104,7 @@ pub fn run(cli: Cli, spec_dir: &Path) -> Result<()> {
         Commands::Rm {
             to_delete,
             skip_prompt,
-        } => cmd::rm(&specs, to_delete, skip_prompt)?,
+        } => cmd::rm(&specs, to_delete, skip_prompt, &mut stdout, &mut stderr)?,
     }
 
     Ok(())

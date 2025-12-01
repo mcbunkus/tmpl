@@ -7,7 +7,7 @@ use crate::specs::{Spec, Specs};
 /// Simply list the name of all the specs in the spec directory.
 fn list_without_vars<W: std::io::Write>(specs: Vec<OsString>, writer: &mut W) -> Result<()> {
     for spec in specs {
-        writeln!(writer, "{}", spec.display());
+        writeln!(writer, "{}", spec.display())?;
     }
 
     Ok(())
@@ -53,7 +53,8 @@ fn list_with_vars<W: std::io::Write>(
     Ok(())
 }
 
-/// ls subcommand entrypoint.
+/// ls subcommand entrypoint. It takes and writes to a writer instead of stdout for unit testing
+/// purposes.
 pub fn list<W: std::io::Write>(specs: &Specs, list_vars: bool, writer: &mut W) -> Result<()> {
     let all_specs = specs.get_all_specs()?;
 

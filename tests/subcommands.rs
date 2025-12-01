@@ -8,12 +8,14 @@ use tmpl::{
 
 #[test]
 fn test_new_command() {
+    let mut stdout = Vec::new();
+
     let spec_name = OsString::from("test.template");
 
     let temp = tempdir().unwrap();
     let specs = Specs::new(temp.path()).unwrap();
 
-    new(&specs, &spec_name, false).unwrap();
+    new(&specs, &spec_name, false, &mut stdout).unwrap();
 
     let full_path = temp.path().join(&spec_name);
     assert!(
@@ -30,6 +32,7 @@ fn test_new_command() {
 
 #[test]
 fn test_cp_command() {
+    let mut stdout = Vec::new();
     let src_name = OsString::from("test.src");
     let dst_name = OsString::from("test.dst");
 
@@ -37,7 +40,7 @@ fn test_cp_command() {
     let specs = Specs::new(temp.path()).unwrap();
 
     // this will succeed if test_new_command is succeeding
-    new(&specs, &src_name, false).unwrap();
+    new(&specs, &src_name, false, &mut stdout).unwrap();
     cmd::cp(&specs, &src_name, &dst_name, true).unwrap();
 
     let dst_path = temp.path().join(&dst_name);
@@ -57,6 +60,7 @@ fn test_cp_command() {
 
 #[test]
 fn test_ls_command() {
+    let mut stdout = Vec::new();
     let sources = vec![
         OsString::from("test1"),
         OsString::from("test2"),
@@ -67,12 +71,12 @@ fn test_ls_command() {
     let specs = Specs::new(temp.path()).unwrap();
 
     for source in &sources {
-        cmd::new(&specs, source, false).unwrap();
+        cmd::new(&specs, source, false, &mut stdout).unwrap();
     }
 
     let mut output_buffer = Vec::new();
     cmd::list(&specs, false, &mut output_buffer).unwrap();
-    let output = String::from_utf8(output_buffer).unwrap();
+    let output = String::from_utf8_lossy(&output_buffer);
 
     for source in &sources {
         let source_str = source.to_string_lossy();

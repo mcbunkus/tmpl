@@ -42,7 +42,13 @@ fn merge_options(defaults: &toml::Table, options: Vec<String>) -> toml::Table {
 }
 
 /// generate corresponds to the gen subcommand. It generates the given template spec
-pub fn generate(specs: &Specs, name: &OsStr, options: Vec<String>) -> Result<()> {
+pub fn generate<W: std::io::Write, E: std::io::Write>(
+    specs: &Specs,
+    name: &OsStr,
+    options: Vec<String>,
+    out: &mut W,
+    err: &mut E,
+) -> Result<()> {
     let spec: Spec = specs
         .read_spec(name)
         .context("Unable to parse template file")?;
@@ -76,7 +82,7 @@ pub fn generate(specs: &Specs, name: &OsStr, options: Vec<String>) -> Result<()>
             }
 
             write(&t.path, render)?;
-            println!("{}", name);
+            writeln!(out, "{}", name).context("Failed to write name of path to stdout writer")?;
             Ok(())
         })();
 
@@ -86,13 +92,16 @@ pub fn generate(specs: &Specs, name: &OsStr, options: Vec<String>) -> Result<()>
     }
 
     if !errors.is_empty() {
-        eprintln!(
+        writeln!(
+            err,
             "\nThe following errors occurred while generating {}",
             name.display()
-        );
+        )
+        .context("Failed to write preamble to error to stderr writer")?;
 
-        for (path, err) in &errors {
-            eprintln!("\t{}: {:#}", path, err);
+        for (path, e) in &errors {
+            writeln!(err, "\t{}: {:#}", path, e)
+                .context("Failed to write paths that had errors to stderr writer")?;
         }
 
         return Err(anyhow::anyhow!(

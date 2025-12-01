@@ -1,6 +1,6 @@
 use std::{env, ffi::OsStr};
 
-use anyhow::Result;
+use anyhow::{Context, Result};
 
 use crate::{
     editor,
@@ -38,10 +38,12 @@ Created by {{ user }}.
 }
 
 /// Generates a new, blank spec in the spec directory.
-pub fn new(specs: &Specs, name: &OsStr, edit: bool) -> Result<()> {
+pub fn new<W: std::io::Write>(specs: &Specs, name: &OsStr, edit: bool, out: &mut W) -> Result<()> {
     let spec = default_spec();
     specs.write_spec(name, &spec)?;
-    println!("Created {}", name.display());
+
+    writeln!(out, "Created {}", name.display())
+        .context("Failed to write name of spec to stdout writer")?;
 
     if edit {
         let path = specs.safe_get_spec_path(name)?;
