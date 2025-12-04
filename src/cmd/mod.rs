@@ -1,5 +1,5 @@
-pub mod cp;
 /// cmd houses entry functions for the cli subcommands.
+pub mod cp;
 pub mod edit;
 pub mod generate;
 pub mod list;
