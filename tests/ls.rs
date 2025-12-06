@@ -3,7 +3,7 @@ mod common;
 use std::{ffi::OsString, vec};
 
 use tmpl::{
-    LsArgs, NewArgs,
+    cli::{LsArgs, NewArgs},
     cmd::{self},
 };
 

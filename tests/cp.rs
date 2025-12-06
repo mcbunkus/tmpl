@@ -1,7 +1,9 @@
 mod common;
 use std::ffi::OsString;
 
-use tmpl::{CpArgs, NewArgs, cmd};
+use tmpl::cli::{CpArgs, NewArgs};
+
+use tmpl::cmd;
 
 #[test]
 fn cp_command() {

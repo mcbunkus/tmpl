@@ -1,7 +1,7 @@
 mod common;
 use std::ffi::OsString;
 
-use tmpl::{NewArgs, cmd};
+use tmpl::{cli::NewArgs, cmd};
 
 #[test]
 fn new_command() {
