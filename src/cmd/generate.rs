@@ -1,12 +1,14 @@
 use anyhow::{Context, Result, ensure};
 use minijinja::Environment;
 use std::{
-    ffi::OsStr,
     fs::{create_dir_all, write},
+    io::Write,
 };
 use toml::value::Datetime;
 
 use crate::{
+    GenArgs,
+    io::IO,
     path::path_is_safe,
     specs::{Spec, Specs},
 };
@@ -42,19 +44,17 @@ fn merge_options(defaults: &toml::Table, options: Vec<String>) -> toml::Table {
 }
 
 /// generate corresponds to the gen subcommand. It generates the given template spec
-pub fn generate<W: std::io::Write, E: std::io::Write>(
+pub fn generate<Stdout: Write, Stderr: Write>(
     specs: &Specs,
-    name: &OsStr,
-    options: Vec<String>,
-    out: &mut W,
-    err: &mut E,
+    args: GenArgs,
+    io: &mut IO<Stdout, Stderr>,
 ) -> Result<()> {
     let spec: Spec = specs
-        .read_spec(name)
+        .read_spec(&args.name)
         .context("Unable to parse template file")?;
 
     // Merging options specified by the user with the defaults in their spec.
-    let variables = merge_options(&spec.variables, options);
+    let variables = merge_options(&spec.variables, args.options);
 
     // minijinja
     let mut env = Environment::new();
@@ -82,7 +82,8 @@ pub fn generate<W: std::io::Write, E: std::io::Write>(
             }
 
             write(&t.path, render)?;
-            writeln!(out, "{}", name).context("Failed to write name of path to stdout writer")?;
+            writeln!(io.stdout(), "{}", name)
+                .context("Failed to write name of path to stdout writer")?;
             Ok(())
         })();
 
@@ -93,21 +94,21 @@ pub fn generate<W: std::io::Write, E: std::io::Write>(
 
     if !errors.is_empty() {
         writeln!(
-            err,
+            io.stderr(),
             "\nThe following errors occurred while generating {}",
-            name.display()
+            args.name.display()
         )
         .context("Failed to write preamble to error to stderr writer")?;
 
         for (path, e) in &errors {
-            writeln!(err, "\t{}: {:#}", path, e)
+            writeln!(io.stderr(), "\t{}: {:#}", path, e)
                 .context("Failed to write paths that had errors to stderr writer")?;
         }
 
         return Err(anyhow::anyhow!(
             "{} template(s) in {} failed to generate",
             errors.len(),
-            name.display()
+            args.name.display()
         ));
     }
 

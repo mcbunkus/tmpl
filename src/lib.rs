@@ -1,17 +1,16 @@
-pub mod cmd;
 mod editor;
-pub mod path;
 mod prompt;
+
+pub mod cmd;
+pub mod io;
+pub mod path;
 pub mod specs;
 
 use anyhow::Result;
 use clap::{Parser, Subcommand};
-use std::{
-    io::{stderr, stdout},
-    path::Path,
-};
+use std::path::Path;
 
-use crate::specs::Specs;
+use crate::{io::IO, specs::Specs};
 
 use std::ffi::OsString;
 
@@ -26,85 +25,88 @@ pub struct Cli {
 
 #[derive(Debug, Subcommand)]
 pub enum Commands {
-    /// List specs in the specs directory
-    Ls {
-        /// List the default arguments for each spec
-        #[arg(short, long)]
-        list_vars: bool,
-    },
+    Ls(LsArgs),
+    New(NewArgs),
+    Gen(GenArgs),
+    Edit(EditArgs),
+    Rm(RmArgs),
+    Cp(CpArgs),
+}
 
-    /// Create a new spec with some example content. The new spec will be opened in your $EDITOR, unless
-    /// --no-edit is specified
-    New {
-        /// The name of your new spec
-        name: OsString,
+/// List specs in the specs directory
+#[derive(Debug, clap::Args)]
+pub struct LsArgs {
+    /// List the default arguments for each spec
+    #[arg(short, long)]
+    pub list_vars: bool,
+}
 
-        /// Don't open it in your $EDITOR after creation
-        #[arg(long = "no-edit", default_value_t = true, action = clap::ArgAction::SetFalse)]
-        edit: bool,
-    },
+/// Create a new spec with some example content. The new spec will be opened in your $EDITOR, unless
+/// --no-edit is specified
+#[derive(Debug, clap::Args)]
+pub struct NewArgs {
+    /// The name of your new spec
+    pub name: OsString,
 
-    /// Generate templates from a spec, with options if specified in your spec file
-    Gen {
-        /// The spec's name
-        name: OsString,
+    /// Don't open it in your $EDITOR after creation
+    #[arg(long = "no-edit", default_value_t = true, action = clap::ArgAction::SetFalse)]
+    pub edit: bool,
+}
 
-        /// Options as key-value pairs (can be specified multiple times)
-        #[arg(short = 'o', value_names = ["KEY", "VALUE"], num_args = 2)]
-        options: Vec<String>,
-    },
+/// Generate templates from a spec, with options if specified in your spec file
+#[derive(Debug, clap::Args)]
+pub struct GenArgs {
+    /// The spec's name
+    pub name: OsString,
 
-    /// Open a spec in your editor of choice
-    Edit {
-        /// The spec's name
-        name: OsString,
-    },
+    /// Options as key-value pairs (can be specified multiple times)
+    #[arg(short = 'o', value_names = ["KEY", "VALUE"], num_args = 2)]
+    pub options: Vec<String>,
+}
 
-    /// Delete one or more specs
-    Rm {
-        to_delete: Vec<OsString>,
+/// Open a spec in your editor of choice
+#[derive(Debug, clap::Args)]
+pub struct EditArgs {
+    /// The spec's name
+    pub name: OsString,
+}
 
-        /// Confirm yes for all given specs
-        #[arg(short = 'y', long = "yes", default_value_t = false, action = clap::ArgAction::SetTrue)]
-        skip_prompt: bool,
-    },
+/// Delete one or more specs
+#[derive(Debug, clap::Args)]
+pub struct RmArgs {
+    pub to_delete: Vec<OsString>,
 
-    /// Copy a spec
-    Cp {
-        /// The spec you want to copy
-        source: OsString,
+    /// Confirm yes for all given specs
+    #[arg(short = 'y', long = "yes", default_value_t = false, action = clap::ArgAction::SetTrue)]
+    pub skip_prompt: bool,
+}
 
-        /// The name of the new spec
-        dest: OsString,
+/// Copy a spec
+#[derive(Debug, clap::Args)]
+pub struct CpArgs {
+    /// The spec you want to copy
+    pub source: OsString,
 
-        /// Skip are you sure prompt
-        #[arg(short = 'y', long = "yes", default_value_t = false, action = clap::ArgAction::SetTrue)]
-        skip_prompt: bool,
-    },
+    /// The name of the new spec
+    pub dest: OsString,
+
+    /// Skip are you sure prompt
+    #[arg(short = 'y', long = "yes", default_value_t = false, action = clap::ArgAction::SetTrue)]
+    pub skip_prompt: bool,
 }
 
 pub fn run(cli: Cli, spec_dir: &Path) -> Result<()> {
     let specs = Specs::new(spec_dir)?;
 
-    let mut stdout = stdout();
-    let mut stderr = stderr();
+    let mut io = IO::default();
 
     match cli.command {
-        Commands::Ls { list_vars } => cmd::list(&specs, list_vars, &mut stdout)?,
-        Commands::New { name, edit } => cmd::new(&specs, &name, edit, &mut stdout)?,
-        Commands::Gen { name, options } => {
-            cmd::generate(&specs, &name, options, &mut stdout, &mut stderr)?
-        }
-        Commands::Edit { name } => cmd::edit(&specs, &name)?,
-        Commands::Cp {
-            source,
-            dest,
-            skip_prompt,
-        } => cmd::cp(&specs, &source, &dest, skip_prompt)?,
-        Commands::Rm {
-            to_delete,
-            skip_prompt,
-        } => cmd::rm(&specs, to_delete, skip_prompt, &mut stdout, &mut stderr)?,
+        Commands::Ls(args) => cmd::list(&specs, args, &mut io)?,
+        Commands::New(args) => cmd::new(&specs, args, &mut io)?,
+        Commands::Gen(args) => cmd::generate(&specs, args, &mut io)?,
+        Commands::Edit(args) => cmd::edit(&specs, args)?,
+        Commands::Cp(args) => cmd::cp(&specs, args)?,
+        Commands::Rm(args) => cmd::rm(&specs, args, &mut io)?,
     }
 
     Ok(())

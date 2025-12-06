@@ -1,44 +1,44 @@
 use anyhow::{Context, Result};
-use std::ffi::{OsStr, OsString};
+use std::{
+    ffi::{OsStr, OsString},
+    io::Write,
+};
 
-use crate::{prompt::prompt_yn, specs::Specs};
+use crate::{RmArgs, io::IO, prompt::prompt_yn, specs::Specs};
 
 /// Delete a spec from the spec directory. Errors aren't fatal in this module's context, except
 /// errors writing to stdout or stderr, so they're just logged in this function.
-fn remove<W: std::io::Write, E: std::io::Write>(
+fn remove<Stdout: Write, Stderr: Write>(
     specs: &Specs,
     name: &OsStr,
-    out: &mut W,
-    err: &mut E,
+    io: &mut IO<Stdout, Stderr>,
 ) -> Result<()> {
     match specs.delete_spec(name) {
-        Ok(_) => writeln!(out, "Deleted {}", name.display())
+        Ok(_) => writeln!(io.stdout(), "Deleted {}", name.display())
             .context("Failed to write to \"stdout\" writer"),
-        Err(e) => writeln!(err, "Failed to delete spec: {:#}", e)
+        Err(e) => writeln!(io.stderr(), "Failed to delete spec: {:#}", e)
             .context("Failed to write to \"stderr\" writer"),
     }
 }
 
 /// Loop through all the specs the user wants to delete and delete them.
-fn remove_without_prompt<W: std::io::Write, E: std::io::Write>(
+fn remove_without_prompt<Stdout: Write, Stderr: Write>(
     specs: &Specs,
     to_delete: Vec<OsString>,
-    out: &mut W,
-    err: &mut E,
+    io: &mut IO<Stdout, Stderr>,
 ) -> Result<()> {
     for candidate in to_delete {
-        remove(specs, &candidate, out, err)?;
+        remove(specs, &candidate, io)?;
     }
     Ok(())
 }
 
 /// Loop through all the specs, and delete them if the user confirms that yes, they did in fact
 /// want to delete it.
-fn remove_with_prompt<W: std::io::Write, E: std::io::Write>(
+fn remove_with_prompt<Stdout: Write, Stderr: Write>(
     specs: &Specs,
     to_delete: Vec<OsString>,
-    out: &mut W,
-    err: &mut E,
+    io: &mut IO<Stdout, Stderr>,
 ) -> Result<()> {
     for candidate in to_delete {
         let question = format!("Remove {}", candidate.display());
@@ -46,13 +46,13 @@ fn remove_with_prompt<W: std::io::Write, E: std::io::Write>(
         match prompt_yn(&question, false) {
             Ok(delete) => {
                 if !delete {
-                    writeln!(out, "Skipping {}", candidate.display())?;
+                    writeln!(io.stdout(), "Skipping {}", candidate.display())?;
                     continue;
                 }
-                remove(specs, &candidate, out, err)?;
+                remove(specs, &candidate, io)?;
             }
             Err(e) => {
-                writeln!(err, "Unexpected error handling prompt: {:#}", e)?;
+                writeln!(io.stderr(), "Unexpected error handling prompt: {:#}", e)?;
             }
         }
     }
@@ -61,16 +61,14 @@ fn remove_with_prompt<W: std::io::Write, E: std::io::Write>(
 }
 
 /// rm subcommand entry point that deletes specs from the spec directory.
-pub fn rm<W: std::io::Write, E: std::io::Write>(
+pub fn rm<Stdout: Write, Stderr: Write>(
     specs: &Specs,
-    to_delete: Vec<OsString>,
-    skip_prompt: bool,
-    out: &mut W,
-    err: &mut E,
+    args: RmArgs,
+    io: &mut IO<Stdout, Stderr>,
 ) -> Result<()> {
-    if skip_prompt {
-        remove_without_prompt(specs, to_delete, out, err)
+    if args.skip_prompt {
+        remove_without_prompt(specs, args.to_delete, io)
     } else {
-        remove_with_prompt(specs, to_delete, out, err)
+        remove_with_prompt(specs, args.to_delete, io)
     }
 }
