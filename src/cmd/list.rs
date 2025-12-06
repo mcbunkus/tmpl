@@ -2,8 +2,9 @@ use anyhow::Result;
 use std::{ffi::OsString, io::Write};
 use unicode_width::UnicodeWidthStr;
 
+use crate::cli::LsArgs;
+
 use crate::{
-    LsArgs,
     io::IO,
     specs::{Spec, Specs},
 };

@@ -4,7 +4,8 @@ use std::{
     io::Write,
 };
 
-use crate::{RmArgs, io::IO, prompt::prompt_yn, specs::Specs};
+use crate::cli::RmArgs;
+use crate::{io::IO, prompt::prompt_yn, specs::Specs};
 
 /// Delete a spec from the spec directory. Errors aren't fatal in this module's context, except
 /// errors writing to stdout or stderr, so they're just logged in this function.

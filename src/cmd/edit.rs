@@ -1,4 +1,5 @@
-use crate::{EditArgs, editor, specs::Specs};
+use crate::cli::EditArgs;
+use crate::{editor, specs::Specs};
 
 use anyhow::Result;
 

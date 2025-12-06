@@ -1,8 +1,10 @@
 use anyhow::{Context, Result};
 use std::{env, io::Write};
 
+use crate::cli::NewArgs;
+
 use crate::{
-    NewArgs, editor,
+    editor,
     io::IO,
     specs::{Spec, Specs, Template},
 };

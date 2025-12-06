@@ -6,8 +6,9 @@ use std::{
 };
 use toml::value::Datetime;
 
+use crate::cli::GenArgs;
+
 use crate::{
-    GenArgs,
     io::IO,
     path::path_is_safe,
     specs::{Spec, Specs},

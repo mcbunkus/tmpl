@@ -2,7 +2,7 @@ use std::fs;
 
 use clap::Parser;
 use directories::ProjectDirs;
-use tmpl::Cli;
+use tmpl::cli::Cli;
 
 fn main() -> anyhow::Result<()> {
     let cli = Cli::parse();

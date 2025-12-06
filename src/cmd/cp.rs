@@ -1,6 +1,8 @@
 use anyhow::{Context, Result};
 
-use crate::{CpArgs, prompt::prompt_yn, specs::Specs};
+use crate::cli::CpArgs;
+
+use crate::{prompt::prompt_yn, specs::Specs};
 
 pub fn cp(specs: &Specs, args: CpArgs) -> Result<()> {
     if specs.exists(&args.dest) && !args.skip_prompt {
