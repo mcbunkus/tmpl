@@ -1,7 +1,12 @@
 [package]
 name = "tmpl"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2024"
+authors = ["Austen LeBeau <austenlebeau@gmail.com>"]
+description = "A command line, template-based file generation tool."
+repository = "https://codeberg.org/mcbunkus/tmpl"
+license = "GPL-3.0-or-later"
+categories = ["command-line-utilities", "template-engine"]
 
 [dependencies]
 anyhow = "1.0.100"
@@ -14,3 +19,8 @@ unicode-width = "0.2"
 
 [dev-dependencies]
 tempfile = "3.23.0"
+
+[profile.release]
+lto = true
+strip = true
+codegen-units = 1
