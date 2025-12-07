@@ -1,13 +1,33 @@
-/// Return a tmpl::io::IO with Vec<u8>s instead of system stdout and stderr for testing output.
-pub fn test_io() -> tmpl::io::IO<Vec<u8>, Vec<u8>> {
-    let stdout = Vec::new();
-    let stderr = Vec::new();
-    tmpl::io::IO::new(stdout, stderr)
+use tempfile::TempDir;
+use tmpl::{io::IO, specs::Specs};
+
+pub struct TestWorkspace {
+    pub io: tmpl::io::IO<Vec<u8>, Vec<u8>>,
+    pub specs: Specs,
+
+    // dir is actually being used but the compiler keeps complaining about it never being read,
+    // despite the fact that it very much is. Even when "let dir = workspace.dir;". visibility?
+    #[allow(dead_code)]
+    pub dir: TempDir,
 }
 
-/// Creates a temporary directory and Specs struct for testing purposes
-pub fn create_test_workspace() -> (tempfile::TempDir, tmpl::specs::Specs) {
-    let temp = tempfile::tempdir().unwrap();
-    let specs = tmpl::specs::Specs::new(temp.path()).unwrap();
-    (temp, specs)
+impl TestWorkspace {
+    pub fn new() -> Self {
+        let dir = tempfile::tempdir().unwrap();
+        let specs = tmpl::specs::Specs::new(dir.path()).unwrap();
+        let io = TestWorkspace::scratch_io();
+        TestWorkspace { specs, dir, io }
+    }
+
+    pub fn scratch_io() -> IO<Vec<u8>, Vec<u8>> {
+        let stdout = Vec::new();
+        let stderr = Vec::new();
+        tmpl::io::IO::new(stdout, stderr)
+    }
+}
+
+impl Default for TestWorkspace {
+    fn default() -> Self {
+        Self::new()
+    }
 }

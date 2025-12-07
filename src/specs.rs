@@ -174,3 +174,218 @@ impl Specs {
         Ok(entries)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use std::fs::create_dir;
+
+    use tempfile::tempdir;
+
+    use super::*;
+
+    fn dummy_spec() -> Spec {
+        Spec {
+            variables: toml::map::Map::new(),
+            templates: vec![],
+        }
+    }
+
+    #[test]
+    fn validate_spec_name() {
+        let dir = tempdir().unwrap();
+        let specs = Specs::new(dir.path()).unwrap();
+
+        // ok
+        let ok_name = OsString::from("this.is.ok");
+
+        // not ok
+        let absolute_path_name = OsString::from("/this/is/not/ok");
+        let nested_dir_name = OsString::from("not/ok");
+        let cwd_name = OsString::from(".");
+        let parent_name = OsString::from("..");
+        let parent_dir_name = OsString::from("../not.ok");
+
+        assert!(specs.validate_spec_name(&ok_name).is_ok());
+        assert!(specs.validate_spec_name(&absolute_path_name).is_err());
+        assert!(specs.validate_spec_name(&nested_dir_name).is_err());
+        assert!(specs.validate_spec_name(&cwd_name).is_err());
+        assert!(specs.validate_spec_name(&parent_name).is_err());
+        assert!(specs.validate_spec_name(&parent_dir_name).is_err());
+    }
+
+    #[test]
+    fn dir() {
+        let dir = tempdir().unwrap();
+        let specs = Specs::new(dir.path()).unwrap();
+        assert_eq!(dir.path(), specs.dir);
+    }
+
+    #[test]
+    fn exists() {
+        let dir = tempdir().unwrap();
+        let specs = Specs::new(dir.path()).unwrap();
+
+        let not_exists = OsString::from("does.not.exist");
+        assert!(!specs.exists(&not_exists));
+
+        let exists = OsString::from("exists");
+        let spec = dummy_spec();
+
+        specs.write_spec(&exists, &spec).unwrap();
+        assert!(specs.exists(&exists));
+    }
+
+    #[test]
+    fn read_to_string() {
+        let dir = tempdir().unwrap();
+        let specs = Specs::new(dir.path()).unwrap();
+
+        let spec_name = OsString::from("test.spec");
+        let spec = dummy_spec();
+
+        specs.write_spec(&spec_name, &spec).unwrap();
+
+        let content = specs.read_to_string(&spec_name).unwrap();
+        assert!(!content.is_empty(), "spec file is empty");
+        assert!(
+            content.contains("templates"),
+            "spec file doesn't contain templates entry"
+        );
+        assert!(
+            content.contains("variables"),
+            "spec file doesn't contain variables entry"
+        );
+    }
+
+    #[test]
+    fn safe_get_spec_path() {
+        let dir = tempdir().unwrap();
+        let specs = Specs::new(dir.path()).unwrap();
+
+        let spec_name = OsString::from("test.spec");
+        let spec = dummy_spec();
+        specs.write_spec(&spec_name, &spec).unwrap();
+
+        let full_path = specs.safe_get_spec_path(&spec_name).unwrap();
+        assert_eq!(dir.path().join(spec_name), full_path);
+
+        // returns an error if it doesn't exist
+        let doesnt_exist = OsString::from("doesnt.exist");
+        assert!(specs.safe_get_spec_path(&doesnt_exist).is_err());
+
+        // ensure that safe_get_spec_path returns an error when the name is a directory
+        let bad_dir_name = OsString::from("bad_dir");
+        let bad_dir = dir.path().join(&bad_dir_name);
+        create_dir(&bad_dir).unwrap();
+        assert!(specs.safe_get_spec_path(&bad_dir_name).is_err());
+    }
+
+    #[test]
+    fn read_spec() {
+        let dir = tempdir().unwrap();
+        let specs = Specs::new(dir.path()).unwrap();
+
+        let spec_name = OsString::from("test.spec");
+        let mut spec = dummy_spec();
+
+        spec.variables
+            .insert("option".into(), toml::Value::Integer(42));
+
+        spec.templates.push(Template {
+            path: "README.md".into(),
+            body: "Hello, world!".into(),
+        });
+
+        specs.write_spec(&spec_name, &spec).unwrap();
+
+        let deserialized_spec = specs.read_spec(&spec_name).unwrap();
+        assert_eq!(spec, deserialized_spec);
+    }
+
+    #[test]
+    fn delete_spec() {
+        let dir = tempdir().unwrap();
+        let specs = Specs::new(dir.path()).unwrap();
+
+        let spec_name = OsString::from("test.spec");
+        let spec = dummy_spec();
+        specs.write_spec(&spec_name, &spec).unwrap();
+
+        assert!(dir.path().join(&spec_name).exists());
+
+        specs.delete_spec(&spec_name).unwrap();
+
+        assert!(!dir.path().join(&spec_name).exists());
+
+        assert!(
+            specs
+                .delete_spec(OsString::from("doesnt.exist").as_os_str())
+                .is_err()
+        );
+    }
+
+    #[test]
+    fn write_spec() {
+        let dir = tempdir().unwrap();
+        let specs = Specs::new(dir.path()).unwrap();
+
+        let spec_name = OsString::from("test.spec");
+        let spec = dummy_spec();
+
+        assert!(specs.write_spec(&spec_name, &spec).is_ok());
+
+        // attempting to do it again should result in an error, other errors are OS dependent
+        // (failed to write, etc.)
+        assert!(specs.write_spec(&spec_name, &spec).is_err());
+    }
+
+    #[test]
+    fn copy() {
+        let dir = tempdir().unwrap();
+        let specs = Specs::new(dir.path()).unwrap();
+
+        let first_spec = OsString::from("first.spec");
+        let second_spec = OsString::from("second.spec");
+        let spec_data = dummy_spec();
+
+        specs.write_spec(&first_spec, &spec_data).unwrap();
+
+        assert!(specs.copy(&first_spec, &second_spec).is_ok());
+
+        // attempting to copy to itself should result in an error
+        assert!(specs.copy(&first_spec, &first_spec).is_err());
+
+        // can't copy from something that doesn't exist either
+        let false_src = OsString::from("false.src");
+        let false_dst = OsString::from("false.dst");
+        assert!(specs.copy(&false_src, &false_dst).is_err());
+
+        // can't copy from an invalid spec name
+        let invalid_src = OsString::from("/not/a/good/spec/name");
+        assert!(specs.copy(&invalid_src, &false_dst).is_err());
+    }
+
+    #[test]
+    fn get_all_specs() {
+        let dir = tempdir().unwrap();
+        let specs = Specs::new(dir.path()).unwrap();
+
+        let spec_names = [
+            OsString::from("spec.1"),
+            OsString::from("spec.2"),
+            OsString::from("spec.3"),
+        ];
+
+        let blank_spec = dummy_spec();
+
+        for spec_name in spec_names.iter() {
+            specs.write_spec(spec_name, &blank_spec).unwrap();
+        }
+
+        let all_specs = specs.get_all_specs().unwrap();
+        assert_eq!(all_specs.len(), spec_names.len());
+        for spec_name in all_specs.iter() {
+            assert!(spec_names.contains(spec_name));
+        }
+    }
+}

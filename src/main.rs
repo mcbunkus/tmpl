@@ -1,5 +1,6 @@
 use std::fs;
 
+use anyhow::Context;
 use clap::Parser;
 use directories::ProjectDirs;
 use tmpl::{
@@ -15,7 +16,7 @@ fn main() -> anyhow::Result<()> {
     // ensure the default spec directory exists before proceeding.
     // TODO: make the spec directory location configurable?
     let spec_dir = ProjectDirs::from("org", "mcbunkus", "tmpl")
-        .ok_or_else(|| anyhow::anyhow!("Unable to find base directories"))?
+        .context("Unable to find base directories")?
         .data_dir()
         .to_path_buf();
 

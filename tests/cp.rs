@@ -5,14 +5,14 @@ use tmpl::cli::{CpArgs, NewArgs};
 
 use tmpl::cmd;
 
+use crate::common::TestWorkspace;
+
 #[test]
-fn cp_command() {
+fn cp() {
     let src_name = OsString::from("test.src");
     let dst_name = OsString::from("test.dst");
 
-    let (temp, specs) = common::create_test_workspace();
-
-    let mut io = common::test_io();
+    let mut workspace = TestWorkspace::new();
 
     let new_args = NewArgs {
         name: src_name.clone(),
@@ -26,14 +26,14 @@ fn cp_command() {
     };
 
     // this will succeed if test_new_command is succeeding
-    cmd::new(&specs, new_args, &mut io).unwrap();
-    cmd::cp(&specs, cp_args).unwrap();
+    cmd::new(&workspace.specs, new_args, &mut workspace.io).unwrap();
+    cmd::cp(&workspace.specs, cp_args).unwrap();
 
-    let dst_path = temp.path().join(&dst_name);
+    let dst_path = workspace.dir.path().join(&dst_name);
     assert!(dst_path.exists(), "{} does not exist", dst_path.display());
 
-    let src_content = specs.read_to_string(&src_name).unwrap();
-    let dst_content = specs.read_to_string(&dst_name).unwrap();
+    let src_content = workspace.specs.read_to_string(&src_name).unwrap();
+    let dst_content = workspace.specs.read_to_string(&dst_name).unwrap();
 
     assert_eq!(
         src_content,
@@ -42,4 +42,12 @@ fn cp_command() {
         src_name.display(),
         dst_name.display()
     );
+}
+
+#[test]
+fn cp_overwrite_results_in_error() {
+    let name = OsString::from("test.name");
+    let workspace = TestWorkspace::new();
+    let result = workspace.specs.copy(&name, &name);
+    assert!(result.is_err());
 }

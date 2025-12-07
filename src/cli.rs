@@ -1,4 +1,4 @@
-use std::ffi::OsString;
+use std::{ffi::OsString, path::PathBuf};
 
 use clap::{Parser, Subcommand};
 
@@ -50,6 +50,10 @@ pub struct GenArgs {
     /// Options as key-value pairs (can be specified multiple times)
     #[arg(short = 'o', value_names = ["KEY", "VALUE"], num_args = 2)]
     pub options: Vec<String>,
+
+    /// The directory to generate the spec in.
+    #[arg(short = 'c')]
+    pub workdir: Option<PathBuf>,
 }
 
 /// Open a spec in your editor of choice

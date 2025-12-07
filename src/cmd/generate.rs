@@ -1,6 +1,8 @@
-use anyhow::{Context, Result, ensure};
+/// gen is a reserved keyword, that's why this module doesn't match the other's naming convention.
+use anyhow::{Context, Result};
 use minijinja::Environment;
 use std::{
+    env::set_current_dir,
     fs::{create_dir_all, write},
     io::Write,
 };
@@ -10,7 +12,7 @@ use crate::cli::GenArgs;
 
 use crate::{
     io::IO,
-    path::path_is_safe,
+    path::check_path_is_valid,
     specs::{Spec, Specs},
 };
 
@@ -50,6 +52,10 @@ pub fn generate<Stdout: Write, Stderr: Write>(
     args: GenArgs,
     io: &mut IO<Stdout, Stderr>,
 ) -> Result<()> {
+    if let Some(path) = args.workdir {
+        set_current_dir(path).context("Unable to change the current working directory")?;
+    }
+
     let spec: Spec = specs
         .read_spec(&args.name)
         .context("Unable to parse template file")?;
@@ -63,11 +69,7 @@ pub fn generate<Stdout: Write, Stderr: Write>(
     let mut errors = Vec::new();
 
     for t in &spec.templates {
-        ensure!(
-            path_is_safe(&t.path),
-            "{} is not a valid path. tmpl only accepts relative paths that don't escape the current working directory for safety reasons",
-            t.path.display()
-        );
+        check_path_is_valid(&t.path)?;
 
         let result = (|| -> Result<()> {
             let name = t
