@@ -23,12 +23,7 @@ const TEMPLATE_BODY: &str = "\
 Hello, {{ name }}
 ";
 
-#[test]
-#[serial]
-fn generate_with_spec_name() {
-    let spec_name = OsString::from("test.spec");
-    let mut workspace = TestWorkspace::new();
-
+fn create_test_spec() -> Spec {
     let mut spec = Spec {
         variables: toml::map::Map::new(),
         templates: Vec::new(),
@@ -44,6 +39,16 @@ fn generate_with_spec_name() {
     spec.variables
         .insert("name".into(), toml::value::Value::String("testing".into()));
 
+    spec
+}
+
+#[test]
+#[serial]
+fn generate_with_spec_name() {
+    let spec_name = OsString::from("test.spec");
+    let mut workspace = TestWorkspace::new();
+
+    let spec = create_test_spec();
     workspace.specs.write_spec(&spec_name, &spec).unwrap();
 
     let gen_args = GenArgs {
@@ -72,20 +77,7 @@ fn generate_with_spec_file() {
     let mut workspace = TestWorkspace::new();
     let spec_file = workspace.dir.path().join("spec.toml");
 
-    let mut spec = Spec {
-        variables: toml::map::Map::new(),
-        templates: Vec::new(),
-    };
-
-    let template = Template {
-        path: PathBuf::from(TEMPLATE_PATH),
-        body: String::from(TEMPLATE_BODY),
-    };
-
-    spec.templates.push(template);
-
-    spec.variables
-        .insert("name".into(), toml::value::Value::String("testing".into()));
+    let spec = create_test_spec();
 
     let serialized_spec = toml::to_string(&spec).unwrap();
     fs::write(&spec_file, serialized_spec).unwrap();
@@ -116,21 +108,7 @@ fn generate_with_options() {
     let spec_name = OsString::from("test.spec");
     let mut workspace = TestWorkspace::new();
 
-    let mut spec = Spec {
-        variables: toml::map::Map::new(),
-        templates: Vec::new(),
-    };
-
-    let template = Template {
-        path: PathBuf::from(TEMPLATE_PATH),
-        body: String::from(TEMPLATE_BODY),
-    };
-
-    spec.templates.push(template);
-
-    spec.variables
-        .insert("name".into(), toml::value::Value::String("testing".into()));
-
+    let spec = create_test_spec();
     workspace.specs.write_spec(&spec_name, &spec).unwrap();
 
     let gen_args = GenArgs {
