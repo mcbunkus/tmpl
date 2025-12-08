@@ -44,8 +44,9 @@ pub struct NewArgs {
 /// Generate templates from a spec, with options if specified in your spec file
 #[derive(Debug, clap::Args)]
 pub struct GenArgs {
-    /// The spec's name
-    pub name: OsString,
+    /// The spec's name. This is mutually exclusive with --file, and will result in an error if
+    /// both are used
+    pub name: Option<OsString>,
 
     /// Options as key-value pairs (can be specified multiple times)
     #[arg(short = 'o', value_names = ["KEY", "VALUE"], num_args = 2)]
@@ -54,6 +55,11 @@ pub struct GenArgs {
     /// The directory to generate the spec in.
     #[arg(short = 'c')]
     pub workdir: Option<PathBuf>,
+
+    /// Point to a spec file, instead of using a spec in the spec directory. Mutually exclusive
+    /// with NAME.
+    #[arg(short = 'f', long = "file")]
+    pub spec_file: Option<PathBuf>,
 }
 
 /// Open a spec in your editor of choice

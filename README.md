@@ -37,7 +37,7 @@ if you got this far.
 
 Let's run `--help` to make sure it's installed correctly:
 
-```bash
+```text
 $ tmpl --help
 A command line, template-based file generation tool.
 
@@ -63,7 +63,10 @@ Of course, there aren't any specs yet. Let's make a new one:
 tmpl new my.new.spec
 ```
 
-This will create `my.new.spec` in the spec directory (`$HOME/.local/share/tmpl/`). If path to a text editor is defined in your `$EDITOR` environment variable, `tmpl` will open your new spec in your `$EDITOR`. It will look like this:
+This will create `my.new.spec` in the spec directory
+(`$HOME/.local/share/tmpl/`). If path to a text editor is defined in your
+`$EDITOR` environment variable, `tmpl` will open your new spec in your
+`$EDITOR`. It will look like this:
 
 ```toml
 [variables]
@@ -169,7 +172,7 @@ below for a more detailed description of how spec files work.
 
 #### `ls` - For listing the specs in your spec directory
 
-```
+```text
 List specs in the specs directory
 
 Usage: tmpl ls [OPTIONS]
@@ -181,7 +184,7 @@ Options:
 
 #### `new` - For creating new specs
 
-```
+```text
 Create a new spec with some example content. The new spec will be opened in your $EDITOR, unless --no-edit is specified
 
 Usage: tmpl new [OPTIONS] <NAME>
@@ -196,23 +199,28 @@ Options:
 
 #### `gen` - For generating a spec
 
-```
+Note that you have the ability to specify the name of a spec in your spec
+directory, OR point to the path of a spec file manually with `--file` or `-f`,
+to generate a spec. You cannot do both though, they are mutually exclusive.
+
+```text
 Generate templates from a spec, with options if specified in your spec file
 
-Usage: tmpl gen [OPTIONS] <NAME>
+Usage: tmpl gen [OPTIONS] [NAME]
 
 Arguments:
-  <NAME>  The spec's name
+  [NAME]  The spec's name. This is mutually exclusive with --file, and will result in an error if both are used
 
 Options:
-  -o <KEY> <VALUE>  Options as key-value pairs (can be specified multiple times)
-  -c <WORKDIR>      The directory to generate the spec in
-  -h, --help        Print help
+  -o <KEY> <VALUE>        Options as key-value pairs (can be specified multiple times)
+  -c <WORKDIR>            The directory to generate the spec in
+  -f, --file <SPEC_FILE>  Point to a spec file, instead of using a spec in the spec directory. Mutually exclusive with NAME
+  -h, --help              Print help
 ```
 
 #### `edit` - For editing a spec in your `$EDITOR`
 
-```
+```text
 Open a spec in your editor of choice
 
 Usage: tmpl edit <NAME>
@@ -230,7 +238,7 @@ For removing one or more specs from your spec directory. It will prompt you
 before deleting each spec, to make sure you really wanted to delete it. `-y` to
 skip prompts.
 
-```
+```text
 Delete one or more specs
 
 Usage: tmpl rm [OPTIONS] [TO_DELETE]…
@@ -245,7 +253,7 @@ Options:
 
 #### `cp` - Copy a spec to another new name
 
-```
+```text
 Copy a spec
 
 Usage: tmpl cp [OPTIONS] <SOURCE> <DEST>
