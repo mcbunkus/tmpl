@@ -1,20 +1,16 @@
 /// gen is a reserved keyword, that's why this module doesn't match the other's naming convention.
-use anyhow::{Context, Result};
+use anyhow::{Context, Result, bail};
 use minijinja::Environment;
 use std::{
     env::set_current_dir,
-    fs::{create_dir_all, write},
+    fs::{self, create_dir_all, write},
     io::Write,
 };
 use toml::value::Datetime;
 
 use crate::cli::GenArgs;
 
-use crate::{
-    io::IO,
-    path::check_path_is_valid,
-    specs::{Spec, Specs},
-};
+use crate::{io::IO, path::check_path_is_valid, specs::Specs};
 
 /// Merge options specified by the user through the command line, with variables defined in their
 /// spec. The command line option is added to this map if it doesn't already exist, otherwise, it
@@ -52,21 +48,48 @@ pub fn generate<Stdout: Write, Stderr: Write>(
     args: GenArgs,
     io: &mut IO<Stdout, Stderr>,
 ) -> Result<()> {
-    if let Some(path) = args.workdir {
+    // gotta have one or the other, but not both nor neither
+    let (spec, spec_name) = match (&args.name, &args.spec_file) {
+        (Some(name), None) => {
+            let spec = specs
+                .read_spec(name)
+                .context("Unable to parse template file")?;
+            (spec, name.clone())
+        }
+        (None, Some(path)) => {
+            let contents =
+                fs::read_to_string(path).context(format!("Unable to read {}", path.display()))?;
+            let spec = toml::from_str(&contents)
+                .context(format!("Unable to deserialize {}", path.display()))?;
+            (spec, path.clone().into_os_string())
+        }
+        (None, None) => {
+            bail!(
+                "Either the name of a spec in the spec directory, or the path to a spec file (--file) is required."
+            )
+        }
+        (Some(_), Some(_)) => {
+            bail!("A spec name and a path to a spec file cannot be given at the same time")
+        }
+    };
+
+    if let Some(path) = &args.workdir {
         set_current_dir(path).context("Unable to change the current working directory")?;
     }
-
-    let spec: Spec = specs
-        .read_spec(&args.name)
-        .context("Unable to parse template file")?;
 
     // Merging options specified by the user with the defaults in their spec.
     let variables = merge_options(&spec.variables, args.options);
 
-    // minijinja
+    // from minijinja
     let mut env = Environment::new();
-
     let mut errors = Vec::new();
+
+    // purely for printing out the names of generated files
+    let path_prefix = if let Some(dir) = &args.workdir {
+        dir.clone()
+    } else {
+        "".into()
+    };
 
     for t in &spec.templates {
         check_path_is_valid(&t.path)?;
@@ -85,7 +108,7 @@ pub fn generate<Stdout: Write, Stderr: Write>(
             }
 
             write(&t.path, render)?;
-            writeln!(io.stdout(), "{}", name)
+            writeln!(io.stdout(), "{}", path_prefix.join(name).display())
                 .context("Failed to write name of path to stdout writer")?;
             Ok(())
         })();
@@ -99,7 +122,7 @@ pub fn generate<Stdout: Write, Stderr: Write>(
         writeln!(
             io.stderr(),
             "\nThe following errors occurred while generating {}",
-            args.name.display()
+            spec_name.display()
         )
         .context("Failed to write preamble to error to stderr writer")?;
 
@@ -111,7 +134,7 @@ pub fn generate<Stdout: Write, Stderr: Write>(
         return Err(anyhow::anyhow!(
             "{} template(s) in {} failed to generate",
             errors.len(),
-            args.name.display()
+            spec_name.display()
         ));
     }
 
